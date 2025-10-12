@@ -40,7 +40,7 @@ public class Event {
     @Column(name = "LOCATION")
     private String location;
 
-    @Column(name = "HOST_ORGANISATION")
+    @Column(name = "HOST_ORGANISETION")
     private String hostOrganisation;
 
     @Column(name = "CREATED_BY")
