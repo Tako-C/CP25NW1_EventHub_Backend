@@ -1,50 +1,56 @@
-// ในไฟล์ src/main/java/com/int371/eventhub/exception/GlobalExceptionHandler.java
-
 package com.int371.eventhub.exception;
-
-import java.time.LocalDateTime;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.int371.eventhub.dto.ErrorResponse;
+import com.int371.eventhub.dto.ApiResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ResourceNotFoundException (Code 400)
+    // Handler สำหรับ ResourceNotFoundException (Code 404)
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
-            ResourceNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<?>> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
+        ApiResponse<?> errorResponse = new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(), // "Not Found"
-                ex.getMessage(), // ข้อความจากตอนที่เรา throw exception
-                request.getRequestURI() // path ที่ยิงเข้ามา
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                request.getRequestURI()
         );
 
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
-    // Handler สำหรับ Exception อื่นๆ (Code 500)
+    // Handler สำหรับ Exception ทั่วไป (Code 500)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<?>> handleGenericException(Exception ex, HttpServletRequest request) {
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
+        ApiResponse<?> errorResponse = new ApiResponse<>(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 "An unexpected error occurred",
+                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
                 request.getRequestURI()
         );
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    // Handler สำหรับ IllegalArgumentException (Code 400)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+
+        ApiResponse<?> errorResponse = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                "Bad Request",
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }
