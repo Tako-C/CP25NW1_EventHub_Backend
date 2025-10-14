@@ -24,7 +24,7 @@ public class EmailService {
 
         String htmlContent = buildOtpEmailContent(otp);
 
-        helper.setFrom("noreply@eventhub.app.co.th", "EventHub Team");
+        helper.setFrom("eventhub@noreply.app", "EventHub Team");
         helper.setTo(email);
         helper.setSubject("Your EventHub Verification Code");
         helper.setText(htmlContent, true);
@@ -71,7 +71,6 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    // Template HTML สำหรับอีเมลต้อนรับ
     private String buildWelcomeEmailContent(String firstName, String password) {
         return "<!DOCTYPE html>"
                 + "<html>"

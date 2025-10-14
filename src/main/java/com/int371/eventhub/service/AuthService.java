@@ -46,7 +46,7 @@ public class AuthService {
     @Autowired
     private EmailService emailService;
 
-    private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+<>?";
+    private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+|~-=\\`{}[]:\";'<>?,./";
 
     public User register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {

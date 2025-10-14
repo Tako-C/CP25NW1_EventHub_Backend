@@ -40,8 +40,8 @@ public class GlobalExceptionHandler {
         String errorMessage = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
 
         ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(), // 400
-                errorMessage,                   // ข้อความที่เราตั้งไว้ใน DTO
+                HttpStatus.BAD_REQUEST.value(),
+                errorMessage,
                 "Validation Failed",
                 request.getRequestURI()
         );
