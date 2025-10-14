@@ -14,4 +14,17 @@ public class EventhubApplication {
 		SpringApplication.run(EventhubApplication.class, args);
 	}
 
+	// BrcyptPassword delete before production
+    // @Bean
+    // public CommandLineRunner commandLineRunner(PasswordEncoder passwordEncoder) {
+    //     return args -> {
+    //         String rawPassword = "pass1234";
+    //         String encodedPassword = passwordEncoder.encode(rawPassword);
+
+    //         System.out.println("--- GENERATED HASHED PASSWORD ---");
+    //         System.out.println(encodedPassword);
+    //         System.out.println("---------------------------------");
+    //     };
+    // }
+
 }

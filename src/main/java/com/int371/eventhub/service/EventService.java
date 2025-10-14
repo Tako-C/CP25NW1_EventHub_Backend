@@ -21,11 +21,16 @@ public class EventService {
     @Autowired
     private ModelMapper modelMapper;
 
-    public List<EventResponse> getAllEvents() {
-        List<Event> events = eventRepository.findAll();
-        return events.stream()
-                .map(event -> modelMapper.map(event, EventResponse.class))
-                .collect(Collectors.toList());
+public List<EventResponse> getAllEvents() {
+    List<Event> events = eventRepository.findAll();
+
+    if (events.isEmpty()) {
+        throw new ResourceNotFoundException("No events available.");
+    }
+    
+    return events.stream()
+            .map(event -> modelMapper.map(event, EventResponse.class))
+            .collect(Collectors.toList());
     }
 
     public EventResponse getEventById(Integer id) {

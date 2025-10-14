@@ -9,8 +9,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
-import com.int371.eventhub.dto.OtpRequest;
-import com.int371.eventhub.dto.OtpVerificationRequest;
+import com.int371.eventhub.dto.JwtResponse;
+import com.int371.eventhub.dto.LoginOtpRequest;
+import com.int371.eventhub.dto.LoginOtpVerificationRequest;
+import com.int371.eventhub.dto.LoginRequest;
+import com.int371.eventhub.dto.RegisterOtpRequest;
+import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
 import com.int371.eventhub.dto.RegisterRequest;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.service.AuthService;
@@ -39,9 +43,9 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/otp/request")
-    public ResponseEntity<ApiResponse<?>> requestOtp(@Valid @RequestBody OtpRequest otpRequest) {
-        otpService.generateAndSendOtp(otpRequest.getEmail());
+    @PostMapping("/register/otp/request")
+    public ResponseEntity<ApiResponse<?>> requestOtp(@Valid @RequestBody RegisterOtpRequest otpRequest) {
+        otpService.generateAndSendOtp(otpRequest);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "OTP has been sent to your email.",
@@ -50,13 +54,46 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/otp/verify")
-    public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(@Valid @RequestBody OtpVerificationRequest verificationRequest) {
-        User registeredUser = otpService.verifyOtpAndRegister(verificationRequest);
+    @PostMapping("/register/otp/verify")
+    public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(@Valid @RequestBody RegisterOtpVerificationRequest verificationRequest) {
+        User registeredUser = authService.registerWithOtp(verificationRequest);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "User registered successfully via OTP!",
                 registeredUser.getEmail()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
+        String token = authService.login(loginRequest);
+        ApiResponse<JwtResponse> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Login successful!",
+                new JwtResponse(token)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login/otp/request")
+    public ResponseEntity<ApiResponse<?>> requestLoginOtp(@Valid @RequestBody LoginOtpRequest request) {
+        otpService.generateAndSendLoginOtp(request.getEmail());
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "A login OTP has been sent to your email.",
+                request.getEmail()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login/otp/verify")
+    public ResponseEntity<ApiResponse<JwtResponse>> verifyLoginOtp(@Valid @RequestBody LoginOtpVerificationRequest request) {
+        String token = authService.loginWithOtp(request);
+        ApiResponse<JwtResponse> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Login successful!",
+                new JwtResponse(token)
         );
         return ResponseEntity.ok(response);
     }
