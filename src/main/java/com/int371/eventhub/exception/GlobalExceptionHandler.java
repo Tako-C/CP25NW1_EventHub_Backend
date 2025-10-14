@@ -124,7 +124,7 @@ public class GlobalExceptionHandler {
         }
 
         ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.UNAUTHORIZED.value(), // 401
+                HttpStatus.UNAUTHORIZED.value(),
                 message,
                 error,
                 request.getRequestURI()

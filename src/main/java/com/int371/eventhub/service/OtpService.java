@@ -1,23 +1,20 @@
 package com.int371.eventhub.service;
 
-
 import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpRequest;
 import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
 import com.int371.eventhub.exception.RequestCooldownException;
 import com.int371.eventhub.repository.UserRepository;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 
 @Service
@@ -27,38 +24,22 @@ public class OtpService {
     @Autowired
     private EmailService emailService;
 
-    private Cache<String, OtpData> registrationOtpCache;
-    private Cache<String, Boolean> registrationCooldownCache;
-    private Cache<String, String> loginOtpCache;
-    private Cache<String, Boolean> loginCooldownCache;
+    private final Cache registrationOtpCache;
+    private final Cache registrationCooldownCache;
+    private final Cache loginOtpCache;
+    private final Cache loginCooldownCache;
 
-    @PostConstruct
-    public void init() {
-        registrationOtpCache = Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .maximumSize(10000)
-                .build();
-
-        registrationCooldownCache = Caffeine.newBuilder()
-                .expireAfterWrite(1, TimeUnit.MINUTES)
-                .maximumSize(10000)
-                .build();
-
-        loginOtpCache = Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .maximumSize(10000)
-                .build();
-
-        loginCooldownCache = Caffeine.newBuilder()
-                .expireAfterWrite(1, TimeUnit.MINUTES)
-                .maximumSize(10000)
-                .build();
+    public OtpService(CacheManager cacheManager) {
+        this.registrationOtpCache = cacheManager.getCache("registrationOtp");
+        this.registrationCooldownCache = cacheManager.getCache("registrationCooldown");
+        this.loginOtpCache = cacheManager.getCache("loginOtp");
+        this.loginCooldownCache = cacheManager.getCache("loginCooldown");
     }
 
     public void generateAndSendOtp(RegisterOtpRequest request) {
         String email = request.getEmail();
 
-        if (registrationCooldownCache.getIfPresent(email) != null) {
+        if (registrationCooldownCache.get(email) != null) {
             throw new RequestCooldownException("Please wait 1 minute before requesting another OTP.");
         }
 
@@ -80,7 +61,7 @@ public class OtpService {
     }
 
     public OtpData verifyRegistrationOtp(RegisterOtpVerificationRequest request) {
-        OtpData storedOtpData = registrationOtpCache.getIfPresent(request.getEmail());
+        OtpData storedOtpData = registrationOtpCache.get(request.getEmail(), OtpData.class);
 
         if (storedOtpData == null) {
             throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
@@ -90,12 +71,12 @@ public class OtpService {
             throw new IllegalArgumentException("Invalid OTP code.");
         }
 
-        registrationOtpCache.invalidate(request.getEmail());
+        registrationOtpCache.evict(request.getEmail());
         return storedOtpData;
     }
 
     public void generateAndSendLoginOtp(String email) {
-        if (loginCooldownCache.getIfPresent(email) != null) {
+        if (loginCooldownCache.get(email) != null) {
             throw new RequestCooldownException("Please wait 1 minute before requesting another OTP.");
         }
         if (!userRepository.existsByEmail(email)) {
@@ -114,10 +95,10 @@ public class OtpService {
     }
 
     public void verifyLoginOtp(String email, String otp) {
-        String storedOtp = loginOtpCache.getIfPresent(email);
+        String storedOtp = loginOtpCache.get(email, String.class);
         if (storedOtp == null || !storedOtp.equals(otp)) {
             throw new IllegalArgumentException("Invalid or expired OTP code.");
         }
-        loginOtpCache.invalidate(email);
+        loginOtpCache.evict(email);
     }
 }
