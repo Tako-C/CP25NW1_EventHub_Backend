@@ -7,4 +7,5 @@ public class OtpData {
     String otp;
     String firstName;
     String lastName;
+    String password;
 }

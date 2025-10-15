@@ -24,7 +24,7 @@ public class EmailService {
 
         String htmlContent = buildOtpEmailContent(otp);
 
-        helper.setFrom("eventhub@noreply.app", "EventHub Team");
+        helper.setFrom("noreply@eventhub.com", "EventHub Team");
         helper.setTo(email);
         helper.setSubject("Your EventHub Verification Code");
         helper.setText(htmlContent, true);
@@ -57,21 +57,21 @@ public class EmailService {
     }
 
     @Async
-    public void sendWelcomePasswordEmail(String to, String firstName, String password) throws MessagingException, UnsupportedEncodingException {
+    public void sendWelcomeEmail(String to, String firstName) throws MessagingException, UnsupportedEncodingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        String htmlContent = buildWelcomeEmailContent(firstName, password);
+        String htmlContent = buildWelcomeEmailContent(firstName);
 
         helper.setFrom("noreply@eventhub.com", "EventHub Team");
         helper.setTo(to);
-        helper.setSubject("Welcome to EventHub! Here is your password.");
+        helper.setSubject("Welcome to EventHub!");
         helper.setText(htmlContent, true);
 
         mailSender.send(message);
     }
 
-    private String buildWelcomeEmailContent(String firstName, String password) {
+    private String buildWelcomeEmailContent(String firstName) {
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head>"
@@ -87,10 +87,7 @@ public class EmailService {
                 + "<body>"
                 + "<div class='container'>"
                 + "<div class='header'>Welcome to EventHub, " + firstName + "!</div>"
-                + "<p>Your registration is complete. You can now log in using your email and the password provided below.</p>"
-                + "<p>Your temporary password is:</p>"
-                + "<div class='password-box'>" + password + "</div>"
-                + "<p class='warning'>For your security, we strongly recommend that you log in and change this password immediately.</p>"
+                + "<p>Your registration is complete. You can now log in using your email and the password or otp.</p>"
                 + "<div class='footer'>Thank you for joining EventHub!</div>"
                 + "</div>"
                 + "</body>"

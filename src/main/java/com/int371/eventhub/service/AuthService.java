@@ -2,7 +2,6 @@ package com.int371.eventhub.service;
 
 import java.io.UnsupportedEncodingException;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,7 +13,6 @@ import com.int371.eventhub.dto.LoginOtpVerificationRequest;
 import com.int371.eventhub.dto.LoginRequest;
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
-import com.int371.eventhub.dto.RegisterRequest;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.UserRole;
 import com.int371.eventhub.repository.UserRepository;
@@ -51,15 +49,6 @@ public class AuthService {
     private static final Integer DEFAULT_STATUS_ID = 1;
     private static final Integer DEFAULT_TOTAL_POINT = 0;
     private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+|~-=\\`{}[]:\";'<>?,./";
-    
-
-    public User register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Error: Email is already in use!");
-        }
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-        return createUser(request.getFirstName(), request.getLastName(), request.getEmail(), encodedPassword);
-    }
 
     public User registerWithOtp(RegisterOtpVerificationRequest request) {
         OtpData otpData = otpService.verifyRegistrationOtp(request);
@@ -69,13 +58,12 @@ public class AuthService {
             throw new IllegalArgumentException("Error: Email has just been registered!");
         }
 
-        String randomPassword = RandomStringUtils.random(16, PASSWORD_CHARACTERS);
-        String encodedPassword = passwordEncoder.encode(randomPassword);
+        String encodedPassword = passwordEncoder.encode(otpData.getPassword());
 
         User savedUser = createUser(otpData.getFirstName(), otpData.getLastName(), email, encodedPassword);
-
+    
         try {
-            emailService.sendWelcomePasswordEmail(savedUser.getEmail(), savedUser.getFirstName(), randomPassword);
+            emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName());
         } catch (MessagingException | UnsupportedEncodingException e) {
             System.err.println("Failed to send welcome email to " + savedUser.getEmail());
         }

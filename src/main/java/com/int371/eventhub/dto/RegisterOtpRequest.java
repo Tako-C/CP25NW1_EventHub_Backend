@@ -2,6 +2,7 @@ package com.int371.eventhub.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -15,4 +16,8 @@ public class RegisterOtpRequest {
 
     @NotBlank(message = "Last name is required.")
     private String lastName;
+
+    @NotBlank(message = "Password is required.")
+    @Size(min = 8, message = "Password must be at least 8 characters.")
+    private String password;
 }

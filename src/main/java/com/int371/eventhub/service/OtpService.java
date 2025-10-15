@@ -38,26 +38,20 @@ public class OtpService {
 
     public void generateAndSendOtp(RegisterOtpRequest request) {
         String email = request.getEmail();
-
-        if (registrationCooldownCache.get(email) != null) {
-            throw new RequestCooldownException("Please wait 1 minute before requesting another OTP.");
-        }
-
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Error: Email is already registered!");
         }
-
-        String otp = new SecureRandom().ints(0, 10).limit(6).mapToObj(String::valueOf).reduce("", String::concat);
-
-        OtpData otpData = new OtpData(otp, request.getFirstName(), request.getLastName());
+        String otp = generateAndSendOtpLogic(email, registrationCooldownCache);
+        OtpData otpData = new OtpData(otp, request.getFirstName(), request.getLastName(), request.getPassword());
         registrationOtpCache.put(email, otpData);
+    }
 
-        try {
-            emailService.sendOtpEmailHtml(email, otp);
-            registrationCooldownCache.put(email, true);
-        } catch (MessagingException | UnsupportedEncodingException e) {
-            throw new RuntimeException("Unable to send OTP email, please try again later.");
+        public void generateAndSendLoginOtp(String email) {
+        if (!userRepository.existsByEmail(email)) {
+            throw new UsernameNotFoundException("User with this email not found.");
         }
+        String otp = generateAndSendOtpLogic(email, loginCooldownCache);
+        loginOtpCache.put(email, otp);
     }
 
     public OtpData verifyRegistrationOtp(RegisterOtpVerificationRequest request) {
@@ -75,30 +69,26 @@ public class OtpService {
         return storedOtpData;
     }
 
-    public void generateAndSendLoginOtp(String email) {
-        if (loginCooldownCache.get(email) != null) {
-            throw new RequestCooldownException("Please wait 1 minute before requesting another OTP.");
-        }
-        if (!userRepository.existsByEmail(email)) {
-            throw new UsernameNotFoundException("User with this email not found.");
-        }
-
-        String otp = new SecureRandom().ints(0, 10).limit(6).mapToObj(String::valueOf).reduce("", String::concat);
-        loginOtpCache.put(email, otp);
-
-        try {
-            emailService.sendOtpEmailHtml(email, otp);
-            loginCooldownCache.put(email, true);
-        } catch (MessagingException | UnsupportedEncodingException e) {
-            throw new RuntimeException("Unable to send OTP email, please try again later.");
-        }
-    }
-
     public void verifyLoginOtp(String email, String otp) {
         String storedOtp = loginOtpCache.get(email, String.class);
         if (storedOtp == null || !storedOtp.equals(otp)) {
             throw new IllegalArgumentException("Invalid or expired OTP code.");
         }
         loginOtpCache.evict(email);
+    }
+
+    private String generateAndSendOtpLogic(String email, org.springframework.cache.Cache cooldownCache) {
+        if (cooldownCache.get(email) != null) {
+            throw new RequestCooldownException("Please wait 1 minute before requesting another OTP.");
+        }
+        String otp = new SecureRandom().ints(0, 10).limit(6).mapToObj(String::valueOf).reduce("", String::concat);
+
+        try {
+            emailService.sendOtpEmailHtml(email, otp);
+            cooldownCache.put(email, true);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            throw new RuntimeException("Unable to send OTP email, please try again later.");
+        }
+        return otp;
     }
 }

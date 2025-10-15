@@ -15,7 +15,6 @@ import com.int371.eventhub.dto.LoginOtpVerificationRequest;
 import com.int371.eventhub.dto.LoginRequest;
 import com.int371.eventhub.dto.RegisterOtpRequest;
 import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
-import com.int371.eventhub.dto.RegisterRequest;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.service.AuthService;
 import com.int371.eventhub.service.OtpService;
@@ -33,17 +32,6 @@ public class AuthController {
     private OtpService otpService;
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
-        User registeredUser = authService.register(registerRequest);
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "User registered successfully!",
-                registeredUser.getEmail()
-        );
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/register/otp/request")
     public ResponseEntity<ApiResponse<?>> requestOtp(@Valid @RequestBody RegisterOtpRequest otpRequest) {
         otpService.generateAndSendOtp(otpRequest);
         ApiResponse<String> response = new ApiResponse<>(
