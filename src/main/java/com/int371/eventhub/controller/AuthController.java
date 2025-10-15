@@ -31,7 +31,7 @@ public class AuthController {
     @Autowired
     private OtpService otpService;
 
-    @PostMapping("/register")
+    @PostMapping("/register/otp/request")
     public ResponseEntity<ApiResponse<?>> requestOtp(@Valid @RequestBody RegisterOtpRequest otpRequest) {
         otpService.generateAndSendOtp(otpRequest);
         ApiResponse<String> response = new ApiResponse<>(

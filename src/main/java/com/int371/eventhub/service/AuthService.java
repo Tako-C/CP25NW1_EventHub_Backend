@@ -48,7 +48,7 @@ public class AuthService {
     private static final Integer DEFAULT_JOB_ID = 1;
     private static final Integer DEFAULT_STATUS_ID = 1;
     private static final Integer DEFAULT_TOTAL_POINT = 0;
-    private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+|~-=\\`{}[]:\";'<>?,./";
+    // private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+|~-=\\`{}[]:\";'<>?,./";
 
     public User registerWithOtp(RegisterOtpVerificationRequest request) {
         OtpData otpData = otpService.verifyRegistrationOtp(request);
