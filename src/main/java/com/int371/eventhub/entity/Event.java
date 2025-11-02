@@ -27,14 +27,14 @@ public class Event {
     @Column(name = "ID")
     private Integer id;
 
-    @Column(name = "EVENT_NAME")
+    @Column(name = "NAME")
     private String eventName;
 
     @Lob
-    @Column(name = "EVENT_DESC")
+    @Column(name = "DESCRIPTION")
     private String eventDesc;
 
-    @Column(name = "EVENT_TYPE_ID")
+    @Column(name = "TYPE_ID")
     private Integer eventTypeId;
 
     @Column(name = "LOCATION")
