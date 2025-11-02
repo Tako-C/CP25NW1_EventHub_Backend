@@ -52,29 +52,33 @@ public class User implements UserDetails {
     @Column(name = "PHONE")
     private String phone;
 
-    @Column(name = "JOB_ID")
-    private Integer jobId;
+    @ManyToOne
+    @JoinColumn(name = "JOB_ID")
+    private Job job;
 
     @Column(name = "ADDRESS")
     private String address;
 
-    @Column(name = "COUNTRY")
-    private String country;
+    @ManyToOne
+    @JoinColumn(name = "COUNTRY_ID")
+    private Country country;
 
-    @Column(name = "CITY")
-    private String city;
-
-    @Column(name = "PROVINCE")
-    private String province;
+    @ManyToOne
+    @JoinColumn(name = "CITY_ID")
+    private City city;
 
     @Column(name = "POST_CODE")
     private String postCode;
 
+    @Column(name = "IMG_PATH_PROF")
+    private String imgPath;
+
     @Column(name = "TOTAL_POINT")
     private Integer totalPoint;
 
-    @Column(name = "STATUS_ID")
-    private Integer statusId;
+    @ManyToOne
+    @JoinColumn(name = "STATUS_ID")
+    private UserStatus status;
 
     @CreatedDate
     @Column(name = "CREATED_AT", nullable = false, updatable = false)

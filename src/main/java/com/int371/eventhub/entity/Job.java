@@ -8,14 +8,14 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "USER_ROLES")
-public class UserRole {
+@Table(name = "JOBS")
+public class Job {
     @Id
     private Integer id;
 
     @Column(name = "NAME")
-    private String roleName;
+    private String jobName;
 
     @Column(name = "DESCRIPTION")
-    private String roleDescription;
+    private String jobDescription;
 }

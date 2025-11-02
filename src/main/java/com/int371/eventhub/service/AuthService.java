@@ -15,8 +15,10 @@ import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.UserRole;
+import com.int371.eventhub.entity.UserStatus;
 import com.int371.eventhub.repository.UserRepository;
 import com.int371.eventhub.repository.UserRoleRepository;
+import com.int371.eventhub.repository.UserStatusRepository;
 
 import jakarta.mail.MessagingException;
 
@@ -44,8 +46,10 @@ public class AuthService {
     @Autowired
     private EmailService emailService;
 
-    private static final Integer DEFAULT_ROLE_ID = 3;
-    private static final Integer DEFAULT_JOB_ID = 1;
+    @Autowired
+    private UserStatusRepository userStatusRepository;
+
+    private static final Integer DEFAULT_ROLE_ID = 4;
     private static final Integer DEFAULT_STATUS_ID = 1;
     private static final Integer DEFAULT_TOTAL_POINT = 0;
     // private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+|~-=\\`{}[]:\";'<>?,./";
@@ -55,7 +59,7 @@ public class AuthService {
         String email = request.getEmail();
 
         if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Error: Email has just been registered!");
+            throw new IllegalArgumentException("Error: Email has been registered!");
         }
 
         String encodedPassword = passwordEncoder.encode(otpData.getPassword());
@@ -81,10 +85,12 @@ public class AuthService {
         UserRole defaultRole = userRoleRepository.findById(DEFAULT_ROLE_ID)
                 .orElseThrow(() -> new RuntimeException("Error: Default role not found."));
         user.setRole(defaultRole);
-        
-        user.setJobId(DEFAULT_JOB_ID);
+
+        UserStatus defaultStatus = userStatusRepository.findById(DEFAULT_STATUS_ID)
+                .orElseThrow(() -> new RuntimeException("Error: Default status not found."));
+        user.setStatus(defaultStatus);
+
         user.setTotalPoint(DEFAULT_TOTAL_POINT);
-        user.setStatusId(DEFAULT_STATUS_ID);
 
         return userRepository.save(user);
     }

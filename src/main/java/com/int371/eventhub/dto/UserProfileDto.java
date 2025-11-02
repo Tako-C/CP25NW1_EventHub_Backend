@@ -10,12 +10,10 @@ public class UserProfileDto {
     private String email;
     private RoleDto role;
     private String phone;
-    private Integer jobId;
-    private String address;
-    private String country;
-    private String city;
-    private String province;
+    private JobDto job;
+    private CountryDto country;
+    private CityDto city;
     private String postCode;
     private Integer totalPoint;
-    private Integer status;
+    private StatusDto status;
 }
