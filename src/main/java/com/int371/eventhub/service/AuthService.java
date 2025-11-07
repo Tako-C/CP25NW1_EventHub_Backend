@@ -1,6 +1,7 @@
 package com.int371.eventhub.service;
 
 import java.io.UnsupportedEncodingException;
+import java.security.SecureRandom;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -52,7 +53,9 @@ public class AuthService {
     private static final Integer DEFAULT_ROLE_ID = 4;
     private static final Integer DEFAULT_STATUS_ID = 1;
     private static final Integer DEFAULT_TOTAL_POINT = 0;
-    // private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+|~-=\\`{}[]:\";'<>?,./";
+    private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final int PASSWORD_LENGTH = 8;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     public User registerWithOtp(RegisterOtpVerificationRequest request) {
         OtpData otpData = otpService.verifyRegistrationOtp(request);
@@ -111,5 +114,13 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         return jwtService.generateToken(user);
+    }
+
+    public String generateRandomPassword() {
+        StringBuilder password = new StringBuilder(PASSWORD_LENGTH);
+        for (int i = 0; i < PASSWORD_LENGTH; i++) {
+            password.append(PASSWORD_CHARACTERS.charAt(RANDOM.nextInt(PASSWORD_CHARACTERS.length())));
+        }
+        return password.toString();
     }
 }
