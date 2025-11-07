@@ -43,6 +43,7 @@ public class OtpService {
         }
         String otp = generateAndSendOtpLogic(email, registrationCooldownCache);
         OtpData otpData = new OtpData(otp, request.getFirstName(), request.getLastName(), request.getPassword());
+
         registrationOtpCache.put(email, otpData);
     }
 
@@ -71,8 +72,13 @@ public class OtpService {
 
     public void verifyLoginOtp(String email, String otp) {
         String storedOtp = loginOtpCache.get(email, String.class);
-        if (storedOtp == null || !storedOtp.equals(otp)) {
-            throw new IllegalArgumentException("Invalid or expired OTP code.");
+
+        if (storedOtp == null) {
+            throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
+        }
+
+        if (!storedOtp.equals(otp)) {
+            throw new IllegalArgumentException("Invalid OTP code.");
         }
         loginOtpCache.evict(email);
     }
