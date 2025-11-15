@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL) 
-public class EventImageResponse {
+public class EventImageResponseDto {
     
     @JsonProperty("imgDetail")
     private String imageDetail;

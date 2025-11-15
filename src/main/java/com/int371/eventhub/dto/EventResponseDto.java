@@ -7,7 +7,7 @@ import com.int371.eventhub.entity.EventType;
 import lombok.Data;
 
 @Data
-public class EventResponse {
+public class EventResponseDto {
     private Integer id;
     private String eventName;
     private String eventDesc;
@@ -19,5 +19,5 @@ public class EventResponse {
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private EventImageResponse images;
+    private EventImageResponseDto images;
 }

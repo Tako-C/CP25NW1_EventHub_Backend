@@ -10,8 +10,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.int371.eventhub.dto.OtpData;
-import com.int371.eventhub.dto.RegisterOtpRequest;
-import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
+import com.int371.eventhub.dto.RegisterOtpRequestDto;
+import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.exception.RequestCooldownException;
 import com.int371.eventhub.repository.UserRepository;
 
@@ -36,7 +36,7 @@ public class OtpService {
         this.loginCooldownCache = cacheManager.getCache("loginCooldown");
     }
 
-    public void generateAndSendOtp(RegisterOtpRequest request) {
+    public void generateAndSendOtp(RegisterOtpRequestDto request) {
         String email = request.getEmail();
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Error: Email is already registered!");
@@ -55,7 +55,7 @@ public class OtpService {
         loginOtpCache.put(email, otp);
     }
 
-    public OtpData verifyRegistrationOtp(RegisterOtpVerificationRequest request) {
+    public OtpData verifyRegistrationOtp(RegisterOtpVerifyRequestDto request) {
         OtpData storedOtpData = registrationOtpCache.get(request.getEmail(), OtpData.class);
 
         if (storedOtpData == null) {

@@ -10,10 +10,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.int371.eventhub.dto.LoginOtpVerificationRequest;
-import com.int371.eventhub.dto.LoginRequest;
+import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
+import com.int371.eventhub.dto.LoginRequestDto;
 import com.int371.eventhub.dto.OtpData;
-import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
+import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.UserRole;
 import com.int371.eventhub.entity.UserStatus;
@@ -57,7 +57,7 @@ public class AuthService {
     private static final int PASSWORD_LENGTH = 8;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    public User registerWithOtp(RegisterOtpVerificationRequest request) {
+    public User registerWithOtp(RegisterOtpVerifyRequestDto request) {
         OtpData otpData = otpService.verifyRegistrationOtp(request);
         String email = request.getEmail();
 
@@ -70,7 +70,7 @@ public class AuthService {
         User savedUser = createUser(otpData.getFirstName(), otpData.getLastName(), email, encodedPassword);
     
         try {
-            emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName());
+            emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFirstName(), otpData.getPassword());
         } catch (MessagingException | UnsupportedEncodingException e) {
             System.err.println("Failed to send welcome email to " + savedUser.getEmail());
         }
@@ -98,7 +98,7 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public String login(LoginRequest request) {
+    public String login(LoginRequestDto request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -109,7 +109,7 @@ public class AuthService {
         return jwtService.generateToken(user);
     }
 
-    public String loginWithOtp(LoginOtpVerificationRequest request) {
+    public String loginWithOtp(LoginOtpAndEventRegisterVerifyRequestDto request) {
         otpService.verifyLoginOtp(request.getEmail(), request.getOtp());
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));

@@ -57,11 +57,11 @@ public class EmailService {
     }
 
     @Async
-    public void sendWelcomeEmail(String to, String firstName) throws MessagingException, UnsupportedEncodingException {
+    public void sendWelcomeEmail(String to, String firstName, String password) throws MessagingException, UnsupportedEncodingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        String htmlContent = buildWelcomeEmailContent(firstName);
+        String htmlContent = buildWelcomeEmailContent(firstName, password);
 
         helper.setFrom("noreply@eventhub.com", "EventHub Team");
         helper.setTo(to);
@@ -71,7 +71,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    private String buildWelcomeEmailContent(String firstName) {
+    private String buildWelcomeEmailContent(String firstName, String password) {
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head>"
@@ -87,7 +87,9 @@ public class EmailService {
                 + "<body>"
                 + "<div class='container'>"
                 + "<div class='header'>Welcome to EventHub, " + firstName + "!</div>"
-                + "<p>Your registration is complete. You can now log in using your email and the password or otp.</p>"
+                + "<p>Your registration is complete. You can now log in using your email and this automatically generated password:</p>"
+                + "<div class='password-box'>" + password + "</div>"
+                + "<p class='warning'>For your security, we strongly recommend changing this password after your first login.</p>"
                 + "<div class='footer'>Thank you for joining EventHub!</div>"
                 + "</div>"
                 + "</body>"

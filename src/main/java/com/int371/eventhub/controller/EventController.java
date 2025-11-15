@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
-import com.int371.eventhub.dto.EventResponse;
+import com.int371.eventhub.dto.EventResponseDto;
 import com.int371.eventhub.service.EventService;
 
 @RestController
@@ -21,9 +21,9 @@ public class EventController {
     private EventService eventService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<EventResponse>>> getAllEvents() {
-        List<EventResponse> events = eventService.getAllEvents();
-        ApiResponse<List<EventResponse>> response = new ApiResponse<>(
+    public ResponseEntity<ApiResponse<List<EventResponseDto>>> getAllEvents() {
+        List<EventResponseDto> events = eventService.getAllEvents();
+        ApiResponse<List<EventResponseDto>> response = new ApiResponse<>(
             HttpStatus.OK.value(), 
             "Events fetched successfully", 
             events
@@ -32,9 +32,9 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<EventResponse>> getEventById(@PathVariable Integer id) {
-        EventResponse event = eventService.getEventById(id);
-        ApiResponse<EventResponse> response = new ApiResponse<>(
+    public ResponseEntity<ApiResponse<EventResponseDto>> getEventById(@PathVariable Integer id) {
+        EventResponseDto event = eventService.getEventById(id);
+        ApiResponse<EventResponseDto> response = new ApiResponse<>(
             HttpStatus.OK.value(), 
             "Event fetched successfully", 
             event

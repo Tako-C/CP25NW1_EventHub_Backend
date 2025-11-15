@@ -14,8 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
-import com.int371.eventhub.dto.EventRegisterVerifyDto;
 import com.int371.eventhub.dto.JwtResponse;
+import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.service.EventRegistrationService;
 
 import jakarta.validation.Valid;
@@ -62,7 +62,7 @@ public class EventRegistrationController {
     @PostMapping("/otp/verify")
     public ResponseEntity<ApiResponse<JwtResponse>> verifyOtpAndRegister(
             @PathVariable Integer eventId,
-            @Valid @RequestBody EventRegisterVerifyDto request) {
+            @Valid @RequestBody LoginOtpAndEventRegisterVerifyRequestDto request) {
         
         EventRegisterResponseDto serviceResult = eventRegistrationService.verifyOtpAndRegister(eventId, request);
         JwtResponse data = new JwtResponse(serviceResult.getToken());

@@ -8,10 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
-import com.int371.eventhub.dto.EventRegisterVerifyDto;
+import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.dto.OtpData;
-import com.int371.eventhub.dto.RegisterOtpRequest;
-import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
+import com.int371.eventhub.dto.RegisterOtpRequestDto;
+import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.VisitorEvent;
@@ -64,7 +64,7 @@ public class EventRegistrationService {
         } else {
             String randomPassword = authService.generateRandomPassword();
 
-            RegisterOtpRequest registerRequest = new RegisterOtpRequest();
+            RegisterOtpRequestDto registerRequest = new RegisterOtpRequestDto();
             registerRequest.setEmail(email);
             registerRequest.setFirstName(request.getFirstName());
             registerRequest.setLastName(request.getLastName());
@@ -75,8 +75,9 @@ public class EventRegistrationService {
         }
     }
 
+    @SuppressWarnings("null")
     @Transactional
-    public EventRegisterResponseDto verifyOtpAndRegister(Integer eventId, EventRegisterVerifyDto request) {
+    public EventRegisterResponseDto verifyOtpAndRegister(Integer eventId, LoginOtpAndEventRegisterVerifyRequestDto request) {
         
         String email = request.getEmail();
         String otp = request.getOtp();
@@ -91,7 +92,7 @@ public class EventRegistrationService {
             otpService.verifyLoginOtp(email, otp); 
 
             User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found.")); // ควรจะต้องเจอ
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 
             String token = jwtService.generateToken(user);
             
@@ -105,7 +106,7 @@ public class EventRegistrationService {
 
         OtpData storedRegisterData = registrationOtpCache.get(email, OtpData.class);
         if (storedRegisterData != null) {
-            RegisterOtpVerificationRequest authRequest = new RegisterOtpVerificationRequest();
+            RegisterOtpVerifyRequestDto authRequest = new RegisterOtpVerifyRequestDto();
 
             authRequest.setEmail(email);
             authRequest.setOtp(otp);

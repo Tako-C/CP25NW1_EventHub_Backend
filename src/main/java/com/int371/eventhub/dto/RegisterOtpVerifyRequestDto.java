@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class RegisterOtpVerificationRequest {
+public class RegisterOtpVerifyRequestDto {
     @NotBlank(message = "Email is required.")
     @Email(message = "Email format is not valid. It should be like 'example@domain.com'.")
     private String email;

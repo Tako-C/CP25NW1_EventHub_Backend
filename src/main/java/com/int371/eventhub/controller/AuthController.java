@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.JwtResponse;
-import com.int371.eventhub.dto.LoginOtpRequest;
-import com.int371.eventhub.dto.LoginOtpVerificationRequest;
-import com.int371.eventhub.dto.LoginRequest;
-import com.int371.eventhub.dto.RegisterOtpRequest;
-import com.int371.eventhub.dto.RegisterOtpVerificationRequest;
+import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
+import com.int371.eventhub.dto.LoginOtpRequestDto;
+import com.int371.eventhub.dto.LoginRequestDto;
+import com.int371.eventhub.dto.RegisterOtpRequestDto;
+import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.service.AuthService;
 import com.int371.eventhub.service.OtpService;
@@ -32,7 +32,7 @@ public class AuthController {
     private OtpService otpService;
 
     @PostMapping("/register/otp/request")
-    public ResponseEntity<ApiResponse<?>> requestOtp(@Valid @RequestBody RegisterOtpRequest otpRequest) {
+    public ResponseEntity<ApiResponse<?>> requestOtp(@Valid @RequestBody RegisterOtpRequestDto otpRequest) {
         otpService.generateAndSendOtp(otpRequest);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -43,7 +43,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/otp/verify")
-    public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(@Valid @RequestBody RegisterOtpVerificationRequest verificationRequest) {
+    public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(@Valid @RequestBody RegisterOtpVerifyRequestDto verificationRequest) {
         User registeredUser = authService.registerWithOtp(verificationRequest);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -54,7 +54,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequestDto loginRequest) {
         String token = authService.login(loginRequest);
         ApiResponse<JwtResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -65,7 +65,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/otp/request")
-    public ResponseEntity<ApiResponse<?>> requestLoginOtp(@Valid @RequestBody LoginOtpRequest request) {
+    public ResponseEntity<ApiResponse<?>> requestLoginOtp(@Valid @RequestBody LoginOtpRequestDto request) {
         otpService.generateAndSendLoginOtp(request.getEmail());
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -76,7 +76,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/otp/verify")
-    public ResponseEntity<ApiResponse<JwtResponse>> verifyLoginOtp(@Valid @RequestBody LoginOtpVerificationRequest request) {
+    public ResponseEntity<ApiResponse<JwtResponse>> verifyLoginOtp(@Valid @RequestBody LoginOtpAndEventRegisterVerifyRequestDto request) {
         String token = authService.loginWithOtp(request);
         ApiResponse<JwtResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
