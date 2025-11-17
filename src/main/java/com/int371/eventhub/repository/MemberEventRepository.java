@@ -4,11 +4,11 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.int371.eventhub.entity.VisitorEvent;
-import com.int371.eventhub.entity.VisitorEventId;
+import com.int371.eventhub.entity.MemberEvent;
+import com.int371.eventhub.entity.MemberEventId;
 
-public interface VisitorEventRepository extends JpaRepository<VisitorEvent, VisitorEventId> {
+public interface MemberEventRepository extends JpaRepository<MemberEvent, MemberEventId> {
     boolean existsByUserIdAndEventId(Integer userId, Integer eventId);
     boolean existsByUserEmailAndEventId(String email, Integer eventId);
-    List<VisitorEvent> findByUserEmail(String email);
+    List<MemberEvent> findByUserEmail(String email);
 }

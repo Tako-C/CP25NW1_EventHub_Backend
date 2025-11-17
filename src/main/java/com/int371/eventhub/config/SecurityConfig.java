@@ -29,10 +29,12 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/*/register/otp/request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/*/register/otp/verify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/events/*/register").authenticated()
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/qr/**").authenticated()

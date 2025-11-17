@@ -1,6 +1,13 @@
 package com.int371.eventhub.service;
 
+import java.awt.image.BufferedImage;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import javax.imageio.ImageIO;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
@@ -9,16 +16,20 @@ import org.springframework.transaction.annotation.Transactional;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
+import com.int371.eventhub.dto.MemberEventQrData;
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.MemberEvent;
+import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.MemberEventRoleName;
 import com.int371.eventhub.entity.User;
-import com.int371.eventhub.entity.VisitorEvent;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
+import com.int371.eventhub.repository.MemberEventRepository;
+import com.int371.eventhub.repository.MemberEventRoleRepository;
 import com.int371.eventhub.repository.UserRepository;
-import com.int371.eventhub.repository.VisitorEventRepository;
 
 @Service
 public class EventRegistrationService {
@@ -30,7 +41,10 @@ public class EventRegistrationService {
     private EventRepository eventRepository;
 
     @Autowired
-    private VisitorEventRepository visitorEventRepository;
+    private MemberEventRepository memberEventRepository;
+
+    @Autowired 
+    private MemberEventRoleRepository memberEventRoleRepository;
 
     @Autowired
     private OtpService otpService;
@@ -44,6 +58,12 @@ public class EventRegistrationService {
     @Autowired
     private CacheManager cacheManager;
 
+    @Autowired 
+    private QrCodeService qrCodeService;
+
+    @Value("${app.qr-code.storage-path}")
+    private String qrStoragePath;
+
     public String requestEventOtp(Integer eventId, EventRegisterRequestDto request) {
         String email = request.getEmail();
 
@@ -54,7 +74,7 @@ public class EventRegistrationService {
         boolean userExists = userRepository.existsByEmail(email);
 
         if (userExists) {
-            if (visitorEventRepository.existsByUserEmailAndEventId(email, eventId)) {
+            if (memberEventRepository.existsByUserEmailAndEventId(email, eventId)) {
                 throw new IllegalArgumentException("This email has already registered for this event.");
             }
 
@@ -96,7 +116,7 @@ public class EventRegistrationService {
 
             String token = jwtService.generateToken(user);
             
-            if (visitorEventRepository.existsByUserIdAndEventId(user.getId(), eventId)) {
+            if (memberEventRepository.existsByUserIdAndEventId(user.getId(), eventId)) {
                 return new EventRegisterResponseDto("You are already registered for this event. Logged in successfully.", token);
             }
 
@@ -121,9 +141,47 @@ public class EventRegistrationService {
         throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
     }
 
+    @SuppressWarnings("UseSpecificCatch")
     private void registerUserForEvent(User user, Event event) {
-        VisitorEvent registration = new VisitorEvent(user, event);
-        visitorEventRepository.save(registration);
+        try {
+            // A. ค้นหา Role "VISITOR"
+            MemberEventRole visitorRole = memberEventRoleRepository.findByName(MemberEventRoleName.VISITOR)
+                .orElseThrow(() -> new RuntimeException("Default 'VISITOR' role not found in database."));
+
+            // B. สร้าง Entity (ยังไม่ Save)
+            MemberEvent registration = new MemberEvent(user, event, visitorRole);
+
+            // C. สร้างเนื้อหา QR Code
+            MemberEventQrData qrData = MemberEventQrData.builder()
+                    .userId(user.getId())
+                    .eventId(event.getId())
+                    .build();
+            
+            // D. สร้างรูปภาพ QR Code
+            BufferedImage qrImage = qrCodeService.generateQrCodeImage(qrData, 250, 250);
+
+            // E. สร้างชื่อไฟล์และ Path
+            String fileName = "user_" + user.getId() + "_event_" + event.getId() + ".png";
+            Path storageDirectory = Paths.get(qrStoragePath);
+            Path destinationFile = storageDirectory.resolve(fileName);
+
+            // F. (สำคัญ) บันทึกไฟล์ลง VM
+            ImageIO.write(qrImage, "png", destinationFile.toFile());
+
+            String urlPath = "/upload/qr/" + fileName;
+            
+            // G. บันทึก "ชื่อไฟล์" ลงใน Entity
+            // (เราเก็บแค่ชื่อไฟล์ดีกว่าเก็บ Full Path เพราะ Path อาจเปลี่ยนได้ในอนาคต)
+            registration.setImgPathQr(urlPath);
+
+            // H. บันทึก Entity (ที่มี path QR) ลง DB
+            memberEventRepository.save(registration);
+
+        } catch (Exception e) {
+            // หากการสร้าง QR หรือ บันทึกไฟล์ล้มเหลว Transaction ทั้งหมดจะ Rollback
+            // (User จะไม่ถูกลงทะเบียน) ซึ่งเป็นพฤติกรรมที่ถูกต้อง
+            throw new RuntimeException("Failed to generate or save QR code: " + e.getMessage(), e);
+        }
     }
 
     @Transactional
@@ -135,7 +193,7 @@ public class EventRegistrationService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
 
-        boolean alreadyRegistered = visitorEventRepository.existsByUserIdAndEventId(user.getId(), event.getId());
+        boolean alreadyRegistered = memberEventRepository.existsByUserIdAndEventId(user.getId(), event.getId());
 
         if (alreadyRegistered) {
             throw new IllegalArgumentException("You have already registered for this event.");

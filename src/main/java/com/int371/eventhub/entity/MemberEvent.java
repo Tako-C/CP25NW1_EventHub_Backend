@@ -21,11 +21,11 @@ import lombok.Data;
 @Data
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "VISITORS_EVENTS")
-public class VisitorEvent {
+@Table(name = "MEMBER_EVENTS")
+public class MemberEvent {
 
     @EmbeddedId
-    private VisitorEventId id;
+    private MemberEventId id;
 
     @ManyToOne
     @MapsId("userId")
@@ -39,7 +39,17 @@ public class VisitorEvent {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false)
-    private VisitorEventStatus status;
+    private MemberEventStatus status;
+
+    @ManyToOne
+    @JoinColumn(name = "EVENT_ROLE_ID", nullable = false)
+    private MemberEventRole eventRole;
+
+    @Column(name = "PRE_SURVEY_POINT")
+    private Integer preSurveyPoint;
+
+    @Column(name = "POST_SURVEY_POINT")
+    private Integer postSurveyPoint;
 
     @Column(name = "IMG_PATH_QR")
     private String imgPathQr;
@@ -48,17 +58,18 @@ public class VisitorEvent {
     @Column(name = "REGISTRATION_AT", nullable = false, updatable = false)
     private LocalDateTime registeredAt;
 
-    public VisitorEvent(User user, Event event) {
+    public MemberEvent(User user, Event event, MemberEventRole eventRole) {
         this.user = user;
         this.event = event;
-        this.id = new VisitorEventId(user.getId(), event.getId());
-        this.status = VisitorEventStatus.registration;
+        this.id = new MemberEventId(user.getId(), event.getId());
+        this.status = MemberEventStatus.registration;
+        this.eventRole = eventRole;
     }
 
-    public VisitorEvent() {
+    public MemberEvent() {
     }
 
     @LastModifiedDate
-    @Column(name = "UPDATED_AT", nullable = false)
+    @Column(name = "CHECK_IN_AT", nullable = false)
     private LocalDateTime updatedAt;
 }

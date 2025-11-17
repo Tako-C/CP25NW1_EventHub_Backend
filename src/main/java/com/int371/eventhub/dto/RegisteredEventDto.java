@@ -18,4 +18,5 @@ public class RegisteredEventDto {
     private String imageCard;
     private String status;
     private LocalDateTime registeredAt;
+    private String eventRole;
 }

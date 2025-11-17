@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Embeddable
 @NoArgsConstructor
 @AllArgsConstructor
-public class VisitorEventId implements Serializable {
+public class MemberEventId implements Serializable {
 
     @Column(name = "USER_ID")
     private Integer userId;
@@ -25,7 +25,7 @@ public class VisitorEventId implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        VisitorEventId that = (VisitorEventId) o;
+        MemberEventId that = (MemberEventId) o;
         return Objects.equals(userId, that.userId) &&
                Objects.equals(eventId, that.eventId);
     }

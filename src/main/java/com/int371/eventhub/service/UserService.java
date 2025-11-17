@@ -11,10 +11,10 @@ import com.int371.eventhub.dto.RegisteredEventDto;
 import com.int371.eventhub.dto.UserProfileDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventImage;
+import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.User;
-import com.int371.eventhub.entity.VisitorEvent;
+import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
-import com.int371.eventhub.repository.VisitorEventRepository;
 
 @Service
 public class UserService {
@@ -23,7 +23,7 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private VisitorEventRepository visitorEventRepository;
+    private MemberEventRepository visitorEventRepository;
 
     @Autowired
     private ModelMapper modelMapper;
@@ -36,15 +36,15 @@ public class UserService {
     }
 
     public List<RegisteredEventDto> getRegisteredEvents(String email) {
-        List<VisitorEvent> registrations = visitorEventRepository.findByUserEmail(email);
+        List<MemberEvent> registrations = visitorEventRepository.findByUserEmail(email);
 
         return registrations.stream()
                 .map(this::mapToRegisteredEventDto)
                 .toList();
     }
 
-    private RegisteredEventDto mapToRegisteredEventDto(VisitorEvent registration) {
-        Event event = registration.getEvent(); // ดึง Event ที่เชื่อมอยู่
+    private RegisteredEventDto mapToRegisteredEventDto(MemberEvent registration) {
+        Event event = registration.getEvent();
         
         RegisteredEventDto dto = new RegisteredEventDto();
         
@@ -55,6 +55,7 @@ public class UserService {
         dto.setLocation(event.getLocation());
         dto.setStatus(registration.getStatus().name());
         dto.setRegisteredAt(registration.getRegisteredAt());
+        dto.setEventRole(registration.getEventRole().getName().name());
 
         if (event.getImages() != null) {
             String cardImage = event.getImages().stream()
