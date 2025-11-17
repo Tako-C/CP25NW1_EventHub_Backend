@@ -56,6 +56,7 @@ public class UserService {
         dto.setStatus(registration.getStatus().name());
         dto.setRegisteredAt(registration.getRegisteredAt());
         dto.setEventRole(registration.getEventRole().getName().name());
+        dto.setQrCodeUrl(registration.getImgPathQr());
 
         if (event.getImages() != null) {
             String cardImage = event.getImages().stream()

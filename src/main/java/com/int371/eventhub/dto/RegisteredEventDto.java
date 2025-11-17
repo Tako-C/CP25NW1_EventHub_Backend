@@ -19,4 +19,5 @@ public class RegisteredEventDto {
     private String status;
     private LocalDateTime registeredAt;
     private String eventRole;
+    private String qrCodeUrl;
 }
