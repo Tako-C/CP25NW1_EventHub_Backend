@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
-import com.int371.eventhub.dto.JwtResponse;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.service.EventRegistrationService;
 
@@ -28,19 +27,23 @@ public class EventRegistrationController {
     private EventRegistrationService eventRegistrationService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Object>> registerAsLoggedInUser(
+    public ResponseEntity<ApiResponse<EventRegisterResponseDto>> registerAsLoggedInUser(
             @PathVariable Integer eventId, 
             Principal principal) {
 
         String userEmail = principal.getName();
         
 
-        eventRegistrationService.registerAuthenticatedUser(eventId, userEmail);
+        String qrCodeUrl = eventRegistrationService.registerAuthenticatedUser(eventId, userEmail);
 
-        ApiResponse<Object> response = new ApiResponse<>(
+        EventRegisterResponseDto data = EventRegisterResponseDto.builder()
+                .qrCodeUrl(qrCodeUrl)
+                .build();
+
+        ApiResponse<EventRegisterResponseDto> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Event registration successful.",
-                null
+                data
         );
         return ResponseEntity.ok(response);
     }
@@ -60,13 +63,18 @@ public class EventRegistrationController {
     }
 
     @PostMapping("/otp/verify")
-    public ResponseEntity<ApiResponse<JwtResponse>> verifyOtpAndRegister(
+    public ResponseEntity<ApiResponse<EventRegisterResponseDto>> verifyOtpAndRegister(
             @PathVariable Integer eventId,
             @Valid @RequestBody LoginOtpAndEventRegisterVerifyRequestDto request) {
         
         EventRegisterResponseDto serviceResult = eventRegistrationService.verifyOtpAndRegister(eventId, request);
-        JwtResponse data = new JwtResponse(serviceResult.getToken());
-        ApiResponse<JwtResponse> response = new ApiResponse<>(
+        
+        EventRegisterResponseDto data = EventRegisterResponseDto.builder()
+                .token(serviceResult.getToken())
+                .qrCodeUrl(serviceResult.getQrCodeUrl())
+                .build();
+
+        ApiResponse<EventRegisterResponseDto> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 serviceResult.getMessage(),
                 data

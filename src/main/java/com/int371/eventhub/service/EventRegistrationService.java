@@ -117,11 +117,19 @@ public class EventRegistrationService {
             String token = jwtService.generateToken(user);
             
             if (memberEventRepository.existsByUserIdAndEventId(user.getId(), eventId)) {
-                return new EventRegisterResponseDto("You are already registered for this event. Logged in successfully.", token);
+                return EventRegisterResponseDto.builder()
+                        .message("You are already registered for this event. Logged in successfully.")
+                        .token(token)
+                        .build();
             }
 
-            registerUserForEvent(user, event);
-            return new EventRegisterResponseDto("Login and event registration successful.", token);
+            String qrCodeUrl = registerUserForEvent(user, event);
+            
+            return EventRegisterResponseDto.builder()
+                    .message("Login and event registration successful.")
+                    .token(token)
+                    .qrCodeUrl(qrCodeUrl)
+                    .build();
         }
 
         OtpData storedRegisterData = registrationOtpCache.get(email, OtpData.class);
@@ -133,16 +141,20 @@ public class EventRegistrationService {
             authRequest.setPassword(storedRegisterData.getPassword());
 
             User registeredUser = authService.registerWithOtp(authRequest);
-            registerUserForEvent(registeredUser, event);
+            String qrCodeUrl = registerUserForEvent(registeredUser, event);
             String token = jwtService.generateToken(registeredUser);
             
-            return new EventRegisterResponseDto("New user registered and event registration successful.", token);
+            return EventRegisterResponseDto.builder()
+                    .message("New user registered and event registration successful.")
+                    .token(token)
+                    .qrCodeUrl(qrCodeUrl)
+                    .build();
         }
         throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
     }
 
     @SuppressWarnings("UseSpecificCatch")
-    private void registerUserForEvent(User user, Event event) {
+    private String registerUserForEvent(User user, Event event) {
         try {
             MemberEventRole visitorRole = memberEventRoleRepository.findByName(MemberEventRoleName.VISITOR)
                 .orElseThrow(() -> new RuntimeException("Default 'VISITOR' role not found in database."));
@@ -159,13 +171,14 @@ public class EventRegistrationService {
             String fileName = "user_" + user.getId() + "_event_" + event.getId() + ".png";
             Path storageDirectory = Paths.get(qrStoragePath);
             Path destinationFile = storageDirectory.resolve(fileName);
-
+            
             ImageIO.write(qrImage, "png", destinationFile.toFile());
 
             String urlPath = "/upload/qr/" + fileName;
             registration.setImgPathQr(urlPath);
-            
             memberEventRepository.save(registration);
+
+            return urlPath;
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate or save QR code: " + e.getMessage(), e);
@@ -173,7 +186,7 @@ public class EventRegistrationService {
     }
 
     @Transactional
-    public void registerAuthenticatedUser(Integer eventId, String userEmail) {
+    public String registerAuthenticatedUser(Integer eventId, String userEmail) {
         
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found (from token)"));
@@ -187,6 +200,6 @@ public class EventRegistrationService {
             throw new IllegalArgumentException("You have already registered for this event.");
         }
 
-        registerUserForEvent(user, event);
+        return registerUserForEvent(user, event);
     }
 }
