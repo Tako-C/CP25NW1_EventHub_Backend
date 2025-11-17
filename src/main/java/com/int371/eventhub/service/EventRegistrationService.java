@@ -144,42 +144,30 @@ public class EventRegistrationService {
     @SuppressWarnings("UseSpecificCatch")
     private void registerUserForEvent(User user, Event event) {
         try {
-            // A. ค้นหา Role "VISITOR"
             MemberEventRole visitorRole = memberEventRoleRepository.findByName(MemberEventRoleName.VISITOR)
                 .orElseThrow(() -> new RuntimeException("Default 'VISITOR' role not found in database."));
-
-            // B. สร้าง Entity (ยังไม่ Save)
             MemberEvent registration = new MemberEvent(user, event, visitorRole);
 
-            // C. สร้างเนื้อหา QR Code
+
             MemberEventQrData qrData = MemberEventQrData.builder()
                     .userId(user.getId())
                     .eventId(event.getId())
                     .build();
-            
-            // D. สร้างรูปภาพ QR Code
+
             BufferedImage qrImage = qrCodeService.generateQrCodeImage(qrData, 250, 250);
 
-            // E. สร้างชื่อไฟล์และ Path
             String fileName = "user_" + user.getId() + "_event_" + event.getId() + ".png";
             Path storageDirectory = Paths.get(qrStoragePath);
             Path destinationFile = storageDirectory.resolve(fileName);
 
-            // F. (สำคัญ) บันทึกไฟล์ลง VM
             ImageIO.write(qrImage, "png", destinationFile.toFile());
 
             String urlPath = "/upload/qr/" + fileName;
-            
-            // G. บันทึก "ชื่อไฟล์" ลงใน Entity
-            // (เราเก็บแค่ชื่อไฟล์ดีกว่าเก็บ Full Path เพราะ Path อาจเปลี่ยนได้ในอนาคต)
             registration.setImgPathQr(urlPath);
-
-            // H. บันทึก Entity (ที่มี path QR) ลง DB
+            
             memberEventRepository.save(registration);
 
         } catch (Exception e) {
-            // หากการสร้าง QR หรือ บันทึกไฟล์ล้มเหลว Transaction ทั้งหมดจะ Rollback
-            // (User จะไม่ถูกลงทะเบียน) ซึ่งเป็นพฤติกรรมที่ถูกต้อง
             throw new RuntimeException("Failed to generate or save QR code: " + e.getMessage(), e);
         }
     }
