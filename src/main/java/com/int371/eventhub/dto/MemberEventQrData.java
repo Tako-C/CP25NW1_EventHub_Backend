@@ -10,4 +10,6 @@ import lombok.Data;
 public class MemberEventQrData {
     private Integer userId;
     private Integer eventId;
+    private String registrationDate;
+    private String status; 
 }

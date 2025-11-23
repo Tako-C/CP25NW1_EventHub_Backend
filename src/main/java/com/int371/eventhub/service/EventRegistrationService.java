@@ -3,6 +3,8 @@ package com.int371.eventhub.service;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import javax.imageio.ImageIO;
 
@@ -13,6 +15,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
@@ -30,6 +33,7 @@ import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.MemberEventRoleRepository;
 import com.int371.eventhub.repository.UserRepository;
+import com.int371.eventhub.util.EncryptionUtil;
 
 @Service
 public class EventRegistrationService {
@@ -60,6 +64,12 @@ public class EventRegistrationService {
 
     @Autowired 
     private QrCodeService qrCodeService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private EncryptionUtil encryptionUtil;
 
     @Value("${app.qr-code.storage-path}")
     private String qrStoragePath;
@@ -160,13 +170,21 @@ public class EventRegistrationService {
                 .orElseThrow(() -> new RuntimeException("Default 'VISITOR' role not found in database."));
             MemberEvent registration = new MemberEvent(user, event, visitorRole);
 
+            LocalDateTime now = LocalDateTime.now();
+            registration.setRegisteredAt(now);
+
 
             MemberEventQrData qrData = MemberEventQrData.builder()
                     .userId(user.getId())
                     .eventId(event.getId())
+                    .registrationDate(registration.getRegisteredAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                    .status(registration.getStatus().name())
                     .build();
 
-            BufferedImage qrImage = qrCodeService.generateQrCodeImage(qrData, 250, 250);
+            String jsonContent = objectMapper.writeValueAsString(qrData);
+            String encryptedContent = encryptionUtil.encrypt(jsonContent);
+
+            BufferedImage qrImage = qrCodeService.generateQrCodeImage(encryptedContent, 250, 250);
 
             String fileName = "user_" + user.getId() + "_event_" + event.getId() + ".png";
             Path storageDirectory = Paths.get(qrStoragePath);
