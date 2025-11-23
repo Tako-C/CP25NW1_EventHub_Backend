@@ -7,7 +7,7 @@ import com.int371.eventhub.util.EncryptionUtil;
 public class TestGenQr {
     public static void main(String[] args) {
 
-        String qrRawData = "UID147 EID2 23-11-1482T15:14";
+        String qrRawData = "UID147 EID2 23-11-1482T15:44";
 
         EncryptionUtil encryptionUtil = new EncryptionUtil();
         

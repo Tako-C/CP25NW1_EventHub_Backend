@@ -29,7 +29,7 @@ public class QrCheckInController {
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 resultMessage,
-                "Checked In"
+                null
         );
         return ResponseEntity.ok(response);
     }

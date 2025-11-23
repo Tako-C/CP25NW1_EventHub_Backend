@@ -244,6 +244,11 @@ public class EventRegistrationService {
             MemberEvent memberEvent = memberEventRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
 
+            Event event = memberEvent.getEvent();
+            if (event.getEndDate() != null && LocalDateTime.now().isAfter(event.getEndDate())) {
+                throw new IllegalArgumentException("Check-in failed: The event has ended.");
+            }
+
             if (memberEvent.getStatus() == MemberEventStatus.check_in) {
                 throw new IllegalArgumentException("User already checked in.");
             }
