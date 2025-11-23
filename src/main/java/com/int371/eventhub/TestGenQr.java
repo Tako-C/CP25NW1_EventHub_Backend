@@ -7,24 +7,21 @@ import com.int371.eventhub.util.EncryptionUtil;
 public class TestGenQr {
     public static void main(String[] args) {
 
-        String jsonPayload = "{\"userId\": 147, \"eventId\": 2, \"registrationDate\": \"1482-11-23:15:14:12\", \"status\": \"registration\"}";
+        String qrRawData = "UID147 EID2 23-11-1482T15:14";
 
         EncryptionUtil encryptionUtil = new EncryptionUtil();
         
         try {
             Field secretKeyField = EncryptionUtil.class.getDeclaredField("SECRET_KEY");
-            
             secretKeyField.setAccessible(true);
-
-            secretKeyField.set(encryptionUtil, "FOREVENTHUBKEYEC");
-            
+            secretKeyField.set(encryptionUtil, "FOREVENTHUBKEYEC"); // Key จาก application.properties
         } catch (Exception e) {
             System.err.println("Error setting secret key: " + e.getMessage());
             return;
         }
 
         try {
-            String encryptedString = encryptionUtil.encrypt(jsonPayload);
+            String encryptedString = encryptionUtil.encrypt(qrRawData);
             System.out.println("--- Copy ค่าด้านล่างนี้ไปใส่ใน Postman (ตรง qrContent) ---");
             System.out.println(encryptedString);
             System.out.println("---------------------------------------------------------");

@@ -20,7 +20,6 @@ import com.int371.eventhub.dto.CheckInRequestDto;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
-import com.int371.eventhub.dto.MemberEventQrData;
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
@@ -176,16 +175,12 @@ public class EventRegistrationService {
             LocalDateTime now = LocalDateTime.now();
             registration.setRegisteredAt(now);
 
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm");
+            String formattedDate = registration.getRegisteredAt().format(formatter);
 
-            MemberEventQrData qrData = MemberEventQrData.builder()
-                    .userId(user.getId())
-                    .eventId(event.getId())
-                    .registrationDate(registration.getRegisteredAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                    .status(registration.getStatus().name())
-                    .build();
+            String qrRawData = "UID" + user.getId() + " EID" + event.getId() + " " + formattedDate;
 
-            String jsonContent = objectMapper.writeValueAsString(qrData);
-            String encryptedContent = encryptionUtil.encrypt(jsonContent);
+            String encryptedContent = encryptionUtil.encrypt(qrRawData);
 
             BufferedImage qrImage = qrCodeService.generateQrCodeImage(encryptedContent, 250, 250);
 
@@ -227,24 +222,39 @@ public class EventRegistrationService {
     @Transactional
     public String checkInUser(CheckInRequestDto request) {
         try {
-            String decryptedJson = encryptionUtil.decrypt(request.getQrContent());
+            String decryptedString = encryptionUtil.decrypt(request.getQrContent());
 
-            MemberEventQrData qrData = objectMapper.readValue(decryptedJson, MemberEventQrData.class);
+            String[] parts = decryptedString.split(" ");
+            
+            if (parts.length < 3) {
+                throw new IllegalArgumentException("Invalid QR Code format.");
+            }
 
-            MemberEventId id = new MemberEventId(qrData.getUserId(), qrData.getEventId());
+            String userIdPart = parts[0];
+            String eventIdPart = parts[1];
+
+            if (!userIdPart.startsWith("UID") || !eventIdPart.startsWith("EID")) {
+                throw new IllegalArgumentException("Invalid QR Code prefixes.");
+            }
+
+            Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
+            Integer eventId = Integer.parseInt(eventIdPart.replace("EID", ""));
+
+            MemberEventId id = new MemberEventId(userId, eventId);
             MemberEvent memberEvent = memberEventRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found for this user and event."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
 
             if (memberEvent.getStatus() == MemberEventStatus.check_in) {
-                throw new IllegalArgumentException("This QR Code has already been used. User is already checked in.");
+                throw new IllegalArgumentException("User already checked in.");
             }
 
             memberEvent.setStatus(MemberEventStatus.check_in);
-            
             memberEventRepository.save(memberEvent);
 
             return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
 
+        } catch (NumberFormatException e) {
+             throw new IllegalArgumentException("Invalid ID format inside QR.");
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
