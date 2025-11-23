@@ -16,7 +16,7 @@ import com.int371.eventhub.dto.UserProfileDto;
 import com.int371.eventhub.service.UserService;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 public class UserController {
 
     @Autowired

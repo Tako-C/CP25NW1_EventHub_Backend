@@ -20,7 +20,7 @@ import com.int371.eventhub.service.EventRegistrationService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/events/{eventId}/register") 
+@RequestMapping("/events/{eventId}/register") 
 public class EventRegistrationController {
     
     @Autowired

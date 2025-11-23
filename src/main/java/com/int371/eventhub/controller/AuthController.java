@@ -22,7 +22,7 @@ import com.int371.eventhub.service.OtpService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     @Autowired

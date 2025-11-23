@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.int371.eventhub.dto.CheckInRequestDto;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
@@ -25,8 +26,10 @@ import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
+import com.int371.eventhub.entity.MemberEventId;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.MemberEventRoleName;
+import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
@@ -219,5 +222,33 @@ public class EventRegistrationService {
         }
 
         return registerUserForEvent(user, event);
+    }
+
+    @Transactional
+    public String checkInUser(CheckInRequestDto request) {
+        try {
+            String decryptedJson = encryptionUtil.decrypt(request.getQrContent());
+
+            MemberEventQrData qrData = objectMapper.readValue(decryptedJson, MemberEventQrData.class);
+
+            MemberEventId id = new MemberEventId(qrData.getUserId(), qrData.getEventId());
+            MemberEvent memberEvent = memberEventRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found for this user and event."));
+
+            if (memberEvent.getStatus() == MemberEventStatus.check_in) {
+                throw new IllegalArgumentException("This QR Code has already been used. User is already checked in.");
+            }
+
+            memberEvent.setStatus(MemberEventStatus.check_in);
+            
+            memberEventRepository.save(memberEvent);
+
+            return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid QR Code data.");
+        }
     }
 }

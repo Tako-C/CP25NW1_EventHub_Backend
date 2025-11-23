@@ -15,7 +15,7 @@ import com.int371.eventhub.dto.EventResponseDto;
 import com.int371.eventhub.service.EventService;
 
 @RestController
-@RequestMapping("/api/events")
+@RequestMapping("/events")
 public class EventController {
     @Autowired
     private EventService eventService;
