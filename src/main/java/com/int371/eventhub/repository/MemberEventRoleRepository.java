@@ -9,4 +9,5 @@ import com.int371.eventhub.entity.MemberEventRoleName;
 
 public interface MemberEventRoleRepository extends JpaRepository<MemberEventRole, Integer> {
     Optional<MemberEventRole> findByName(MemberEventRoleName name);
+
 }
