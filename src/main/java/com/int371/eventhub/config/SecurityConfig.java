@@ -10,6 +10,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -25,16 +29,18 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> {}) // <<< ต้องมีตรงนี้
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/events/*/register/otp/request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/events/*/register/otp/verify").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/events","/event/**", "/api/events/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/events/**","/event/**", "/api/events/**").permitAll()
+                        // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
                         .requestMatchers("/upload/qr/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
@@ -47,4 +53,19 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+    @Bean
+        public CorsFilter corsFilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.addAllowedOriginPattern("*"); // รองรับ http + https
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return new CorsFilter(source);
+        }
+
 }

@@ -320,7 +320,8 @@ public class EventRegistrationService {
         } else {
             User foundUser = foundUserInEvent.get().getUser();
             SearchUserCheckInResponseDto responseDto = new SearchUserCheckInResponseDto();
-            responseDto.setName(foundUser.getFirstName());
+            responseDto.setUserId(foundUser.getId());
+            responseDto.setName(foundUser.getFirstName() + " " + foundUser.getLastName());
             responseDto.setEmail(foundUser.getEmail());
             responseDto.setStatus(foundUserInEvent.get().getStatus().toString());
             return responseDto;
