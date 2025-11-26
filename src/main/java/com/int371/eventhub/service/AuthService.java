@@ -50,7 +50,7 @@ public class AuthService {
     @Autowired
     private UserStatusRepository userStatusRepository;
 
-    private static final Integer DEFAULT_ROLE_ID = 4;
+    private static final String DEFAULT_ROLE_NAME = "GENERAL_USER";
     private static final Integer DEFAULT_STATUS_ID = 1;
     private static final Integer DEFAULT_TOTAL_POINT = 0;
     private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -85,8 +85,8 @@ public class AuthService {
         user.setEmail(email);
         user.setPassword(encodedPassword);
 
-        UserRole defaultRole = userRoleRepository.findById(DEFAULT_ROLE_ID)
-                .orElseThrow(() -> new RuntimeException("Error: Default role not found."));
+        UserRole defaultRole = userRoleRepository.findByRoleName(DEFAULT_ROLE_NAME)
+                .orElseThrow(() -> new RuntimeException("Error: Default role '" + DEFAULT_ROLE_NAME + "' not found."));
         user.setRole(defaultRole);
 
         UserStatus defaultStatus = userStatusRepository.findById(DEFAULT_STATUS_ID)
