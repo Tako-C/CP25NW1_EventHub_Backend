@@ -27,6 +27,11 @@ public class UserService {
 
     @Autowired
     private ModelMapper modelMapper;
+    public String getFullName(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
+        return user.getFirstName() + " " + user.getLastName();
+    }
 
     public UserProfileDto getUserProfile(String email) {
         User user = userRepository.findByEmail(email)

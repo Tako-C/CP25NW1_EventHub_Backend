@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
@@ -20,9 +22,12 @@ import com.int371.eventhub.dto.CheckInRequestDto;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
+import com.int371.eventhub.dto.ManualCheckInRequestDto;
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
+import com.int371.eventhub.dto.SearchUserCheckInRequestDto;
+import com.int371.eventhub.dto.SearchUserCheckInResponseDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventId;
@@ -266,4 +271,62 @@ public class EventRegistrationService {
             throw new IllegalArgumentException("Invalid QR Code data.");
         }
     }
+    
+    @Transactional
+    public String manualCheckInUser(ManualCheckInRequestDto request){
+        try {
+            MemberEventId id = new MemberEventId(request.getUserId(), request.getEventId());
+            MemberEvent memberEvent = memberEventRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
+
+            Event event = memberEvent.getEvent();
+            if (event.getEndDate() != null && LocalDateTime.now().isAfter(event.getEndDate())) {
+                throw new IllegalArgumentException("Check-in failed: The event has ended.");
+            }
+
+            if (memberEvent.getStatus() == MemberEventStatus.check_in) {
+                throw new IllegalArgumentException("User already checked in.");
+            }
+
+            memberEvent.setStatus(MemberEventStatus.check_in);
+            memberEventRepository.save(memberEvent);
+
+            return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
+        } catch (Exception e) {
+            // TODO: handle exception
+            throw new IllegalArgumentException("Manual check-in failed: " + e.getMessage());
+        }
+        
+        
+    }
+
+    public SearchUserCheckInResponseDto searchUser(SearchUserCheckInRequestDto request) {
+        // หา User จาก email
+        Optional<User> user = userRepository.findByEmail(request.getEmail());
+
+        if (user == null) {
+            throw new ResourceNotFoundException(
+                "User not found with email: " + request.getEmail()
+            );
+        }
+        Optional<MemberEvent> foundUserInEvent = memberEventRepository
+            .findByUserEmailAndEventId(request.getEmail(), request.getEventId());
+        // Map User → DTO
+        if (foundUserInEvent.isEmpty()) {
+            throw new ResourceNotFoundException(
+                "email: " + request.getEmail() + " is not registered for event id: " + request.getEventId()
+            );
+            
+        } else {
+            User foundUser = foundUserInEvent.get().getUser();
+            SearchUserCheckInResponseDto responseDto = new SearchUserCheckInResponseDto();
+            responseDto.setUserId(foundUser.getId());
+            responseDto.setName(foundUser.getFirstName() + " " + foundUser.getLastName());
+            responseDto.setEmail(foundUser.getEmail());
+            responseDto.setStatus(foundUserInEvent.get().getStatus().toString());
+            return responseDto;
+        }
+        
+    }
+
 }
