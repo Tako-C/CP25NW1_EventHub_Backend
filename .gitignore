@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Windows temp files
+*.argfile
+*.tmp
+*.temp
+
+# Java temp / build
+*.class
+*.jar
+*.war
+*.log

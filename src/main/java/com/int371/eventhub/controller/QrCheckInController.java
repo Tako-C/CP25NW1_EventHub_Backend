@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.CheckInRequestDto;
+import com.int371.eventhub.dto.CheckInResponseDto;
+import com.int371.eventhub.dto.GenericResponse;
 import com.int371.eventhub.service.EventRegistrationService;
 
 import jakarta.validation.Valid;
@@ -21,16 +23,10 @@ public class QrCheckInController {
     @Autowired
     private EventRegistrationService eventRegistrationService;
 
-    @PostMapping("/check-in")
-    public ResponseEntity<ApiResponse<String>> checkInUser(@Valid @RequestBody CheckInRequestDto request) {
-        
-        String resultMessage = eventRegistrationService.checkInUser(request);
+    // ใน EventRegistrationController.java
 
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                resultMessage,
-                null
-        );
-        return ResponseEntity.ok(response);
+    @PostMapping("/check-in")
+    public GenericResponse<CheckInResponseDto> checkInUser(@Valid @RequestBody CheckInRequestDto request) {
+        return eventRegistrationService.checkInUser(request);   
     }
 }

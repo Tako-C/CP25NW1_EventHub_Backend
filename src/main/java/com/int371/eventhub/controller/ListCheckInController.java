@@ -38,10 +38,10 @@ public class ListCheckInController {
     // private MemberEventRoleRepository memberEventRoleRepository;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<List<ListCheckInResponseDto>>> getListCheckIn(
+public ResponseEntity<ApiResponse<List<ListCheckInResponseDto>>> getListCheckIn(
         @RequestBody ListCheckInRequestDto requestDto) {
 
-    Integer userId = requestDto.getUserId();
+    Integer userId = listCheckInService.getUserIdFromToken();
     Integer eventId = requestDto.getEventId();
 
     // ตรวจ event

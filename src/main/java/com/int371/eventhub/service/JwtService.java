@@ -80,4 +80,10 @@ public class JwtService {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
     }
+
+    public Integer extractUserId(String token) {
+        final Claims claims = extractAllClaims(token);
+        System.out.println("Claims: " + claims);
+        return claims.get("userId", Integer.class);
+    }
 }

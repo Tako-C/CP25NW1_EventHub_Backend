@@ -4,5 +4,4 @@ import lombok.Data;
 @Data
 public class ListCheckInRequestDto {
     private Integer eventId;
-    private Integer userId;
 }

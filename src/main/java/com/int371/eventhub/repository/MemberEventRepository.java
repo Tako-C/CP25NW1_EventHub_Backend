@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventId;
 import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.MemberEventRoleName;
 
 public interface MemberEventRepository extends JpaRepository<MemberEvent, MemberEventId> {
     boolean existsByUserIdAndEventId(Integer userId, Integer eventId);
@@ -15,5 +16,6 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Member
     List<MemberEvent> findByUserEmail(String email);
     List<MemberEvent> findByEventRole(MemberEventRole role);
     Optional<MemberEvent> findByUserEmailAndEventId(String email, Integer eventId);
+    List<MemberEvent> findAllByEventRoleName(MemberEventRoleName roleEvent);
 
 }

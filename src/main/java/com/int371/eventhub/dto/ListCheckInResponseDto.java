@@ -11,5 +11,6 @@ public class ListCheckInResponseDto {
     private String email;
     private String phone;
     private LocalDateTime registration_date;
+    private LocalDateTime check_in_at;
     private String status;
 }

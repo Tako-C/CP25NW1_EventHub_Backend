@@ -19,8 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.int371.eventhub.dto.CheckInRequestDto;
+import com.int371.eventhub.dto.CheckInResponseDto;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
 import com.int371.eventhub.dto.EventRegisterResponseDto;
+import com.int371.eventhub.dto.GenericResponse;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.dto.ManualCheckInRequestDto;
 import com.int371.eventhub.dto.OtpData;
@@ -225,7 +227,7 @@ public class EventRegistrationService {
     }
 
     @Transactional
-    public String checkInUser(CheckInRequestDto request) {
+    public GenericResponse<CheckInResponseDto> checkInUser(CheckInRequestDto request) {
         try {
             String decryptedString = encryptionUtil.decrypt(request.getQrContent());
 
@@ -261,7 +263,13 @@ public class EventRegistrationService {
             memberEvent.setStatus(MemberEventStatus.check_in);
             memberEventRepository.save(memberEvent);
 
-            return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
+            CheckInResponseDto responseDto = new CheckInResponseDto();
+            responseDto.setUserId(memberEvent.getUser().getId().toString());
+            responseDto.setUserName(memberEvent.getUser().getFirstName() + " " + memberEvent.getUser().getLastName());
+            responseDto.setEmail(memberEvent.getUser().getEmail());
+            responseDto.setPhone(memberEvent.getUser().getPhone());
+            responseDto.setEventName(memberEvent.getEvent().getEventName());
+            return new GenericResponse<>("Check-in successful", responseDto);
 
         } catch (NumberFormatException e) {
              throw new IllegalArgumentException("Invalid ID format inside QR.");
