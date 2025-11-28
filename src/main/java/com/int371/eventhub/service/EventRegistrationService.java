@@ -356,7 +356,7 @@ public class EventRegistrationService {
             }
 
             Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
-            Integer eventId = Integer.parseInt(eventIdPart.replace("EID", "")); // <-- ได้ Event ID จาก QR ตรงนี้
+            Integer eventId = Integer.parseInt(eventIdPart.replace("EID", ""));
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found from QR data."));
@@ -380,7 +380,8 @@ public class EventRegistrationService {
             return response;
 
         } catch (Exception e) {
-            throw new IllegalArgumentException("Cannot read QR Info: " + e.getMessage());
+            System.err.println("QR Decryption Error: " + e.getMessage()); 
+            throw new IllegalArgumentException("Invalid QR Code data.");
         }
     }
 }
