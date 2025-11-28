@@ -343,7 +343,6 @@ public class EventRegistrationService {
 
     public CheckInPreviewResponseDto getCheckInPreview(CheckInRequestDto request) {
         try {
-            // 1. Decrypt
             String decryptedString = encryptionUtil.decrypt(request.getQrContent());
             String[] parts = decryptedString.split(" ");
             
@@ -352,7 +351,6 @@ public class EventRegistrationService {
             String userIdPart = parts[0];
             String eventIdPart = parts[1];
 
-            // 2. แกะ ID จาก String (UID.., EID..)
             if (!userIdPart.startsWith("UID") || !eventIdPart.startsWith("EID")) {
                 throw new IllegalArgumentException("Invalid QR Code prefixes.");
             }
@@ -360,14 +358,12 @@ public class EventRegistrationService {
             Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
             Integer eventId = Integer.parseInt(eventIdPart.replace("EID", "")); // <-- ได้ Event ID จาก QR ตรงนี้
 
-            // 3. ดึงข้อมูล User และ Event
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found from QR data."));
 
             Event event = eventRepository.findById(eventId)
                     .orElseThrow(() -> new ResourceNotFoundException("Event not found from QR data."));
 
-            // 4. Map ลง DTO เพื่อส่งกลับ
             CheckInPreviewResponseDto response = new CheckInPreviewResponseDto();
 
             CheckInPreviewResponseDto.UserPreviewDto userDto = new CheckInPreviewResponseDto.UserPreviewDto();
