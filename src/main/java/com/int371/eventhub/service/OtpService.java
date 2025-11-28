@@ -6,13 +6,13 @@ import java.security.SecureRandom;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.exception.RequestCooldownException;
+import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.UserRepository;
 
 import jakarta.mail.MessagingException;
@@ -49,7 +49,7 @@ public class OtpService {
 
         public void generateAndSendLoginOtp(String email) {
         if (!userRepository.existsByEmail(email)) {
-            throw new UsernameNotFoundException("User with this email not found.");
+            throw new ResourceNotFoundException("User with this email not found.");
         }
         String otp = generateAndSendOtpLogic(email, loginCooldownCache);
         loginOtpCache.put(email, otp);
