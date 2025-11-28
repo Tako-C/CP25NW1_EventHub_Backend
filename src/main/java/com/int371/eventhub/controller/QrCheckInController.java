@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
+import com.int371.eventhub.dto.CheckInPreviewResponseDto;
 import com.int371.eventhub.dto.CheckInRequestDto;
 import com.int371.eventhub.dto.CheckInResponseDto;
 import com.int371.eventhub.dto.GenericResponse;
@@ -23,10 +24,21 @@ public class QrCheckInController {
     @Autowired
     private EventRegistrationService eventRegistrationService;
 
-    // ใน EventRegistrationController.java
-
     @PostMapping("/check-in")
     public GenericResponse<CheckInResponseDto> checkInUser(@Valid @RequestBody CheckInRequestDto request) {
         return eventRegistrationService.checkInUser(request);   
+    }
+
+    @PostMapping("/user-info")
+    public ResponseEntity<ApiResponse<CheckInPreviewResponseDto>> getUserInfoFromQr(@Valid @RequestBody CheckInRequestDto request) {
+        
+        CheckInPreviewResponseDto previewData = eventRegistrationService.getCheckInPreview(request);
+
+        ApiResponse<CheckInPreviewResponseDto> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Preview info fetched successfully",
+                previewData
+        );
+        return ResponseEntity.ok(response);
     }
 }

@@ -5,11 +5,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.int371.eventhub.dto.CheckInPreviewResponseDto;
 import com.int371.eventhub.dto.CheckInRequestDto;
 import com.int371.eventhub.dto.CheckInResponseDto;
 import com.int371.eventhub.dto.EventRegisterRequestDto;
@@ -74,11 +75,14 @@ public class EventRegistrationService {
     @Autowired 
     private QrCodeService qrCodeService;
 
-    @Autowired
+    @Autowired 
     private ObjectMapper objectMapper;
 
     @Autowired
     private EncryptionUtil encryptionUtil;
+
+    @Autowired 
+    private ModelMapper modelMapper;
 
     @Value("${app.qr-code.storage-path}")
     private String qrStoragePath;
@@ -337,4 +341,50 @@ public class EventRegistrationService {
         
     }
 
+    public CheckInPreviewResponseDto getCheckInPreview(CheckInRequestDto request) {
+        try {
+            // 1. Decrypt
+            String decryptedString = encryptionUtil.decrypt(request.getQrContent());
+            String[] parts = decryptedString.split(" ");
+            
+            if (parts.length < 3) throw new IllegalArgumentException("Invalid QR Code format.");
+
+            String userIdPart = parts[0];
+            String eventIdPart = parts[1];
+
+            // 2. แกะ ID จาก String (UID.., EID..)
+            if (!userIdPart.startsWith("UID") || !eventIdPart.startsWith("EID")) {
+                throw new IllegalArgumentException("Invalid QR Code prefixes.");
+            }
+
+            Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
+            Integer eventId = Integer.parseInt(eventIdPart.replace("EID", "")); // <-- ได้ Event ID จาก QR ตรงนี้
+
+            // 3. ดึงข้อมูล User และ Event
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found from QR data."));
+
+            Event event = eventRepository.findById(eventId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Event not found from QR data."));
+
+            // 4. Map ลง DTO เพื่อส่งกลับ
+            CheckInPreviewResponseDto response = new CheckInPreviewResponseDto();
+
+            CheckInPreviewResponseDto.UserPreviewDto userDto = new CheckInPreviewResponseDto.UserPreviewDto();
+            userDto.setFirstName(user.getFirstName());
+            userDto.setLastName(user.getLastName());
+            userDto.setEmail(user.getEmail());
+            userDto.setImgPath(user.getImgPath());
+            response.setUserProfile(userDto);
+
+            CheckInPreviewResponseDto.EventPreviewDto eventDto = new CheckInPreviewResponseDto.EventPreviewDto();
+            eventDto.setEventName(event.getEventName());
+            response.setEventDetail(eventDto);
+
+            return response;
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Cannot read QR Info: " + e.getMessage());
+        }
+    }
 }
