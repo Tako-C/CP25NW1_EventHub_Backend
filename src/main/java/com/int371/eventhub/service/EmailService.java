@@ -95,4 +95,40 @@ public class EmailService {
                 + "</body>"
                 + "</html>";
     }
+
+    @Async
+    public void sendWelcomeEmail(String to, String firstName) throws MessagingException, UnsupportedEncodingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        String htmlContent = buildSimpleWelcomeEmailContent(firstName);
+
+        helper.setFrom("noreply@eventhub.com", "EventHub Team");
+        helper.setTo(to);
+        helper.setSubject("Welcome to EventHub!");
+        helper.setText(htmlContent, true);
+
+        mailSender.send(message);
+    }
+
+    private String buildSimpleWelcomeEmailContent(String firstName) {
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head>"
+                + "<style>"
+                + "body {font-family: Arial, sans-serif; color: #333;}"
+                + ".container {border: 1px solid #ddd; padding: 20px; max-width: 600px; margin: auto;}"
+                + ".header {font-size: 24px; color: #007bff; margin-bottom: 20px;}"
+                + ".footer {font-size: 12px; color: #777; margin-top: 20px;}"
+                + "</style>"
+                + "</head>"
+                + "<body>"
+                + "<div class='container'>"
+                + "<div class='header'>Welcome to EventHub, " + firstName + "!</div>"
+                + "<p>Your registration is complete. You can now log in using your email and password.</p>"
+                + "<div class='footer'>Thank you for joining EventHub!</div>"
+                + "</div>"
+                + "</body>"
+                + "</html>";
+    }
 }

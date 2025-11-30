@@ -44,7 +44,7 @@ public class AuthController {
 
     @PostMapping("/register/otp/verify")
     public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(@Valid @RequestBody RegisterOtpVerifyRequestDto verificationRequest) {
-        User registeredUser = authService.registerWithOtp(verificationRequest);
+        User registeredUser = authService.registerWithOtp(verificationRequest, false);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "User registered successfully via OTP!",

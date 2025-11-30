@@ -163,7 +163,7 @@ public class EventRegistrationService {
             authRequest.setOtp(otp);
             authRequest.setPassword(storedRegisterData.getPassword());
 
-            User registeredUser = authService.registerWithOtp(authRequest);
+            User registeredUser = authService.registerWithOtp(authRequest, true);
             String qrCodeUrl = registerUserForEvent(registeredUser, event);
             String token = jwtService.generateToken(registeredUser);
             
