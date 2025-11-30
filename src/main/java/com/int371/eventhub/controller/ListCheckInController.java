@@ -13,12 +13,7 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.ListCheckInRequestDto;
 import com.int371.eventhub.dto.ListCheckInResponseDto;
 import com.int371.eventhub.entity.Event;
-// import com.int371.eventhub.entity.MemberEvent;
-// import com.int371.eventhub.entity.MemberEventRole;
-// import com.int371.eventhub.entity.MemberEventRoleName;
 import com.int371.eventhub.repository.EventRepository;
-// import com.int371.eventhub.repository.MemberEventRepository;
-// import com.int371.eventhub.repository.MemberEventRoleRepository;
 import com.int371.eventhub.service.ListCheckInService;
 
 @RestController
@@ -31,56 +26,24 @@ public class ListCheckInController {
     @Autowired
     private EventRepository eventRepository;
 
-    // @Autowired
-    // private MemberEventRepository memberEventRepository;
-
-    // @Autowired
-    // private MemberEventRoleRepository memberEventRoleRepository;
-
     @PostMapping
-public ResponseEntity<ApiResponse<List<ListCheckInResponseDto>>> getListCheckIn(
+    public ResponseEntity<ApiResponse<List<ListCheckInResponseDto>>> getListCheckIn(
         @RequestBody ListCheckInRequestDto requestDto) {
 
     Integer userId = listCheckInService.getUserIdFromToken();
     Integer eventId = requestDto.getEventId();
 
-    // ตรวจ event
     Event event = eventRepository.findById(eventId).orElse(null);
     if (event == null) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiResponse<>(404, "Event not found", null));
     }
 
-    // ตรวจว่า user เป็น creator ของ event
     if (!event.getCreatedBy().equals(userId)) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(403, "You are not the event organizer", null));
     }
-
-    // ตรวจ role = ORGANIZER
-    // MemberEventRole role = memberEventRoleRepository.findByName(MemberEventRoleName.ORGANIZER).orElse(null);
-    // if (role == null) {
-    //     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-    //             .body(new ApiResponse<>(403, "Role not found", null));
-    // }
-
-    // ตรวจว่า user มี role ใน event
-    // MemberEvent userRole = memberEventRepository
-    //         .findByEventRole(role)
-    //         .stream()
-    //         .filter(me -> me.getUser().getId().equals(userId) && me.getEvent().getId().equals(eventId))
-    //         .findFirst()
-    //         .orElse(null);
-
-    // if (userRole == null) {
-    //     return ResponseEntity.status(HttpStatus.FORBIDDEN)
-    //             .body(new ApiResponse<>(403, "Access denied", null));
-    // }
-
-    // ดึงรายการ check-in
-    List<ListCheckInResponseDto> checkIns = listCheckInService.getListCheckIn();
-
+    List<ListCheckInResponseDto> checkIns = listCheckInService.getListCheckIn(eventId);
     return ResponseEntity.ok(new ApiResponse<>(200, "Success", checkIns));
 }
-
 }

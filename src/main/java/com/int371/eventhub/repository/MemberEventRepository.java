@@ -17,5 +17,6 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Member
     List<MemberEvent> findByEventRole(MemberEventRole role);
     Optional<MemberEvent> findByUserEmailAndEventId(String email, Integer eventId);
     List<MemberEvent> findAllByEventRoleName(MemberEventRoleName roleEvent);
+    List<MemberEvent> findByEventIdAndEventRoleName(Integer eventId, MemberEventRoleName name);
 
 }

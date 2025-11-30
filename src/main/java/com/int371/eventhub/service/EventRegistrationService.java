@@ -313,23 +313,27 @@ public class EventRegistrationService {
     }
 
     public SearchUserCheckInResponseDto searchUser(SearchUserCheckInRequestDto request) {
-        // หา User จาก email
         Optional<User> user = userRepository.findByEmail(request.getEmail());
-
-        if (user == null) {
-            throw new ResourceNotFoundException(
-                "User not found with email: " + request.getEmail()
-            );
+        if (user.isEmpty()) {
+             throw new ResourceNotFoundException("User not found with email: " + request.getEmail());
         }
+
         Optional<MemberEvent> foundUserInEvent = memberEventRepository
             .findByUserEmailAndEventId(request.getEmail(), request.getEventId());
-        // Map User → DTO
         if (foundUserInEvent.isEmpty()) {
             throw new ResourceNotFoundException(
-                "email: " + request.getEmail() + " is not registered for event id: " + request.getEventId()
+                "Email: " + request.getEmail() + " is not registered for event id: " + request.getEventId()
             );
-            
-        } else {
+        }
+        
+        MemberEvent memberEvent = foundUserInEvent.get();
+
+        if (memberEvent.getEventRole().getName() != MemberEventRoleName.VISITOR) {
+            throw new ResourceNotFoundException(
+                "User is not a visitor for this event."
+            );
+        }
+        
             User foundUser = foundUserInEvent.get().getUser();
             SearchUserCheckInResponseDto responseDto = new SearchUserCheckInResponseDto();
             responseDto.setUserId(foundUser.getId());
@@ -337,7 +341,7 @@ public class EventRegistrationService {
             responseDto.setEmail(foundUser.getEmail());
             responseDto.setStatus(foundUserInEvent.get().getStatus().toString());
             return responseDto;
-        }
+        
         
     }
 

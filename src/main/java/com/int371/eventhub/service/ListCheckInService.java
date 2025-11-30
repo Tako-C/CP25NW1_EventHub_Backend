@@ -2,6 +2,7 @@ package com.int371.eventhub.service;
 
 
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -28,10 +29,9 @@ public class ListCheckInService {
     @Autowired
     private HttpServletRequest request;
 
-    public List<ListCheckInResponseDto> getListCheckIn() {
+    public List<ListCheckInResponseDto> getListCheckIn(Integer eventId) {
         MemberEventRoleName roleEvent = MemberEventRoleName.VISITOR;
-        List<MemberEvent> listCheckIn = memberRepository.findAllByEventRoleName(roleEvent);
-        //  List<MemberEvent> listCheckIn = memberRepository.findAll();
+        List<MemberEvent> listCheckIn = memberRepository.findByEventIdAndEventRoleName(eventId, roleEvent);
         return listCheckIn.stream().map(me -> {
             ListCheckInResponseDto dto = new ListCheckInResponseDto();
 
