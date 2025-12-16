@@ -14,6 +14,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -45,8 +47,8 @@ public class User implements UserDetails {
     @Column(name = "PASSWORD", nullable = false)
     private String password;
 
-    @ManyToOne
-    @JoinColumn(name = "ROLE_ID")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ROLE", nullable = false)
     private UserRole role;
 
     @Column(name = "PHONE")
@@ -60,11 +62,11 @@ public class User implements UserDetails {
     private String address;
 
     @ManyToOne
-    @JoinColumn(name = "COUNTRY_ID")
+    @JoinColumn(name = "COUNTRIES_ID")
     private Country country;
 
     @ManyToOne
-    @JoinColumn(name = "CITY_ID")
+    @JoinColumn(name = "CITIES_ID")
     private City city;
 
     @Column(name = "POST_CODE")
@@ -73,11 +75,11 @@ public class User implements UserDetails {
     @Column(name = "IMG_PATH_PROF")
     private String imgPath;
 
-    @Column(name = "TOTAL_POINT")
-    private Integer totalPoint;
+    // @Column(name = "TOTAL_POINT")
+    // private Integer totalPoint;
 
-    @ManyToOne
-    @JoinColumn(name = "STATUS_ID")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private UserStatus status;
 
     @CreatedDate
@@ -90,7 +92,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-    return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.getRoleName().toUpperCase()));
+    return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override

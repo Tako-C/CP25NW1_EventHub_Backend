@@ -18,8 +18,6 @@ import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.UserRole;
 import com.int371.eventhub.entity.UserStatus;
 import com.int371.eventhub.repository.UserRepository;
-import com.int371.eventhub.repository.UserRoleRepository;
-import com.int371.eventhub.repository.UserStatusRepository;
 
 import jakarta.mail.MessagingException;
 
@@ -42,17 +40,8 @@ public class AuthService {
     private OtpService otpService;
 
     @Autowired
-    private UserRoleRepository userRoleRepository;
-
-    @Autowired
     private EmailService emailService;
 
-    @Autowired
-    private UserStatusRepository userStatusRepository;
-
-    private static final String DEFAULT_ROLE_NAME = "GENERAL_USER";
-    private static final Integer DEFAULT_STATUS_ID = 1;
-    private static final Integer DEFAULT_TOTAL_POINT = 0;
     private static final String PASSWORD_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final int PASSWORD_LENGTH = 8;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -91,15 +80,9 @@ public class AuthService {
         user.setEmail(email);
         user.setPassword(encodedPassword);
 
-        UserRole defaultRole = userRoleRepository.findByRoleName(DEFAULT_ROLE_NAME)
-                .orElseThrow(() -> new RuntimeException("Error: Default role '" + DEFAULT_ROLE_NAME + "' not found."));
-        user.setRole(defaultRole);
-
-        UserStatus defaultStatus = userStatusRepository.findById(DEFAULT_STATUS_ID)
-                .orElseThrow(() -> new RuntimeException("Error: Default status not found."));
-        user.setStatus(defaultStatus);
-
-        user.setTotalPoint(DEFAULT_TOTAL_POINT);
+        user.setRole(UserRole.GENERAL_USER);
+        // user.setTotalPoint(DEFAULT_TOTAL_POINT);
+        user.setStatus(UserStatus.ACTIVE);
 
         return userRepository.save(user);
     }

@@ -30,8 +30,4 @@ public class EventImage {
 
     @Column(name = "UPLOADED_AT")
     private LocalDateTime uploadedAt;
-
-    @Column(name = "DESCRIPTION")
-    private Integer description;
-
 }

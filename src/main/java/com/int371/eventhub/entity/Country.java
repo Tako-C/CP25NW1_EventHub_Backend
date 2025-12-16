@@ -8,14 +8,14 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "COUNTRYS")
+@Table(name = "COUNTRIES")
 public class Country {
     @Id
     private Integer id;
 
-    @Column(name = "NAME")
-    private String countryName;
+    @Column(name = "NAME_TH")
+    private String countryNameTh;
 
-    @Column(name = "DESCRIPTION")
-    private String countryDescription;
+    @Column(name = "NAME_EN")
+    private String countryNameEn;
 }

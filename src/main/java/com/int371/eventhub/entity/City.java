@@ -8,14 +8,14 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "CITYS")
+@Table(name = "CITIES")
 public class City {
     @Id
     private Integer id;
 
-    @Column(name = "NAME")
-    private String cityName;
+    @Column(name = "NAME_TH")
+    private String cityNameTh;
 
-    @Column(name = "DESCRIPTION")
-    private String cityDescription;
+    @Column(name = "NAME_EN")
+    private String cityNameEn;
 }

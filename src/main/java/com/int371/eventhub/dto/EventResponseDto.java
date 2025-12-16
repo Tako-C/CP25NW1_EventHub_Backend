@@ -15,6 +15,10 @@ public class EventResponseDto {
     private String location;
     private String hostOrganisation;
     private Integer createdBy;
+    private String contactLine;
+    private String contactEmail;
+    private String contactFacebook;
+    private String contactPhone;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime createdAt;

@@ -3,7 +3,6 @@ package com.int371.eventhub.entity;
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.Column;
@@ -21,7 +20,7 @@ import lombok.Data;
 @Data
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "MEMBER_EVENTS")
+@Table(name = "USER_EVENTS")
 public class MemberEvent {
 
     @EmbeddedId
@@ -41,8 +40,8 @@ public class MemberEvent {
     @Column(name = "STATUS", nullable = false)
     private MemberEventStatus status;
 
-    @ManyToOne
-    @JoinColumn(name = "EVENT_ROLE_ID", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "EVENT_ROLE", nullable = false)
     private MemberEventRole eventRole;
 
     @Column(name = "PRE_SURVEY_POINT")
@@ -62,14 +61,14 @@ public class MemberEvent {
         this.user = user;
         this.event = event;
         this.id = new MemberEventId(user.getId(), event.getId());
-        this.status = MemberEventStatus.registration;
+        this.status = MemberEventStatus.REGISTRATION;
         this.eventRole = eventRole;
     }
 
     public MemberEvent() {
     }
 
-    @LastModifiedDate
+    // @LastModifiedDate
     @Column(name = "CHECK_IN_AT", nullable = false)
     private LocalDateTime updatedAt;
 }

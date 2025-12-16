@@ -13,9 +13,9 @@ public class Job {
     @Id
     private Integer id;
 
-    @Column(name = "NAME")
-    private String jobName;
+    @Column(name = "NAME_TH")
+    private String jobNameTh;
 
-    @Column(name = "DESCRIPTION")
-    private String jobDescription;
+    @Column(name = "NAME_EN")
+    private String jobNameEn;
 }

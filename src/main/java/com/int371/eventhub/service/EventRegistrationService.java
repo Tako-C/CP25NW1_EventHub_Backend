@@ -35,13 +35,11 @@ import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventId;
 import com.int371.eventhub.entity.MemberEventRole;
-import com.int371.eventhub.entity.MemberEventRoleName;
 import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.MemberEventRepository;
-import com.int371.eventhub.repository.MemberEventRoleRepository;
 import com.int371.eventhub.repository.UserRepository;
 import com.int371.eventhub.util.EncryptionUtil;
 
@@ -56,9 +54,6 @@ public class EventRegistrationService {
 
     @Autowired
     private MemberEventRepository memberEventRepository;
-
-    @Autowired 
-    private MemberEventRoleRepository memberEventRoleRepository;
 
     @Autowired
     private OtpService otpService;
@@ -179,8 +174,7 @@ public class EventRegistrationService {
     @SuppressWarnings("UseSpecificCatch")
     private String registerUserForEvent(User user, Event event) {
         try {
-            MemberEventRole visitorRole = memberEventRoleRepository.findByName(MemberEventRoleName.VISITOR)
-                .orElseThrow(() -> new RuntimeException("Default 'VISITOR' role not found in database."));
+            MemberEventRole visitorRole = MemberEventRole.VISITOR;
             MemberEvent registration = new MemberEvent(user, event, visitorRole);
 
             LocalDateTime now = LocalDateTime.now();
@@ -260,11 +254,12 @@ public class EventRegistrationService {
                 throw new IllegalArgumentException("Check-in failed: The event has ended.");
             }
 
-            if (memberEvent.getStatus() == MemberEventStatus.check_in) {
+            if (memberEvent.getStatus() == MemberEventStatus.CHECK_IN) {
                 throw new IllegalArgumentException("User already checked in.");
             }
 
-            memberEvent.setStatus(MemberEventStatus.check_in);
+            memberEvent.setStatus(MemberEventStatus.CHECK_IN);
+            memberEvent.setUpdatedAt(LocalDateTime.now());
             memberEventRepository.save(memberEvent);
 
             CheckInResponseDto responseDto = new CheckInResponseDto();
@@ -296,11 +291,11 @@ public class EventRegistrationService {
                 throw new IllegalArgumentException("Check-in failed: The event has ended.");
             }
 
-            if (memberEvent.getStatus() == MemberEventStatus.check_in) {
+            if (memberEvent.getStatus() == MemberEventStatus.CHECK_IN) {
                 throw new IllegalArgumentException("User already checked in.");
             }
 
-            memberEvent.setStatus(MemberEventStatus.check_in);
+            memberEvent.setStatus(MemberEventStatus.CHECK_IN);
             memberEventRepository.save(memberEvent);
 
             return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
@@ -328,10 +323,8 @@ public class EventRegistrationService {
         
         MemberEvent memberEvent = foundUserInEvent.get();
 
-        if (memberEvent.getEventRole().getName() != MemberEventRoleName.VISITOR) {
-            throw new ResourceNotFoundException(
-                "User is not a visitor for this event."
-            );
+        if (memberEvent.getEventRole() != MemberEventRole.VISITOR) {
+            throw new ResourceNotFoundException("User is not a visitor for this event.");
         }
         
             User foundUser = foundUserInEvent.get().getUser();

@@ -10,7 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.int371.eventhub.dto.ListCheckInResponseDto;
 import com.int371.eventhub.entity.MemberEvent;
-import com.int371.eventhub.entity.MemberEventRoleName;
+import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.repository.MemberEventRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,8 +30,8 @@ public class ListCheckInService {
     private HttpServletRequest request;
 
     public List<ListCheckInResponseDto> getListCheckIn(Integer eventId) {
-        MemberEventRoleName roleEvent = MemberEventRoleName.VISITOR;
-        List<MemberEvent> listCheckIn = memberRepository.findByEventIdAndEventRoleName(eventId, roleEvent);
+        MemberEventRole eventRole = MemberEventRole.VISITOR;
+        List<MemberEvent> listCheckIn = memberRepository.findByEventIdAndEventRole(eventId, eventRole);
         return listCheckIn.stream().map(me -> {
             ListCheckInResponseDto dto = new ListCheckInResponseDto();
 

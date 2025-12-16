@@ -52,6 +52,18 @@ public class Event {
     @Column(name = "CREATED_BY")
     private Integer createdBy;
 
+    @Column(name = "CONTACT_LINE")
+    private String contactLine;
+
+    @Column(name = "CONTACT_EMAIL")
+    private String contactEmail;
+
+    @Column(name = "CONTACT_FACEBOOK")
+    private String contactFacebook;
+
+    @Column(name = "CONTACT_PHONE")
+    private String contactPhone;
+
     @Column(name = "START_DATE")
     private LocalDateTime startDate;
 

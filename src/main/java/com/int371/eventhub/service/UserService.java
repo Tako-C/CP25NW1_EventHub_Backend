@@ -60,7 +60,7 @@ public class UserService {
         dto.setLocation(event.getLocation());
         dto.setStatus(registration.getStatus().name());
         dto.setRegisteredAt(registration.getRegisteredAt());
-        dto.setEventRole(registration.getEventRole().getName().name());
+        dto.setEventRole(registration.getEventRole().name());
         dto.setQrCodeUrl(registration.getImgPathQr());
 
         if (event.getImages() != null) {

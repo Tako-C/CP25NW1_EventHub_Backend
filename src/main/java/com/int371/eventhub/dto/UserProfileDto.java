@@ -8,12 +8,12 @@ public class UserProfileDto {
     private String firstName;
     private String lastName;
     private String email;
-    private RoleDto role;
+    private String role;
     private String phone;
     private JobDto job;
     private CountryDto country;
     private CityDto city;
     private String postCode;
     private Integer totalPoint;
-    private StatusDto status;
+    private String status;
 }
