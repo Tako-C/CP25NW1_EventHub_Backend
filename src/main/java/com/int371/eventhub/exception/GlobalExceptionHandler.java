@@ -147,4 +147,19 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
+
+    // เพิ่ม Handler สำหรับ ResponseStatusException (เช่น 404 ที่เรา throw จาก Service)
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<?>> handleResponseStatusException(
+            org.springframework.web.server.ResponseStatusException ex, HttpServletRequest request) {
+
+        ApiResponse<?> errorResponse = new ApiResponse<>(
+                ex.getStatusCode().value(),
+                ex.getReason(), // ดึงข้อความ "User not found with email..."
+                ex.getStatusCode().toString(),
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorResponse, ex.getStatusCode());
+    }
 }

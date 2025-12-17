@@ -11,9 +11,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
+import com.int371.eventhub.dto.EditUserProfileRequestDto;
 import com.int371.eventhub.dto.RegisteredEventDto;
 import com.int371.eventhub.dto.UserProfileDto;
 import com.int371.eventhub.service.UserService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
 
 @RestController
 @RequestMapping("/users")
@@ -54,4 +58,17 @@ public class UserController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/me/profile")
+    public ResponseEntity<ApiResponse<EditUserProfileRequestDto>> editUserProfile(@RequestBody EditUserProfileRequestDto editRequest) {
+        EditUserProfileRequestDto updatedProfile = userService.editUserProfile(editRequest);
+
+        ApiResponse<EditUserProfileRequestDto> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "User profile updated successfully",
+                updatedProfile
+        );
+        return ResponseEntity.ok(response);
+    }
+    
 }
