@@ -4,19 +4,30 @@ import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.int371.eventhub.dto.CityDto;
+import com.int371.eventhub.dto.CountryDto;
 import com.int371.eventhub.dto.EditUserProfileRequestDto;
 import com.int371.eventhub.dto.RegisteredEventDto;
 import com.int371.eventhub.dto.UserProfileDto;
+import com.int371.eventhub.entity.City;
+import com.int371.eventhub.entity.Country;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventImage;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
+import com.int371.eventhub.repository.CountryRepository;
 import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
+import com.int371.eventhub.repository.CityRepository;
+
+import jakarta.persistence.criteria.CriteriaBuilder.In;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class UserService {
@@ -29,6 +40,34 @@ public class UserService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private HttpServletRequest request;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private CountryRepository countryRepository;
+
+    @Autowired
+    private CityRepository cityRepository;
+
+
+    public List<CountryDto> getCountry() {
+       List<Country> countries = countryRepository.findAll();
+       return countries.stream()
+               .map(country -> modelMapper.map(country, CountryDto.class))
+               .toList();   
+    }
+
+    public List<CityDto> getCity(Integer countryId) {
+       List<City> cities = cityRepository.findByCountryId(countryId);
+       return cities.stream()
+               .map(city -> modelMapper.map(city, CityDto.class))
+               .toList();   
+    }
+
     public String getFullName(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
@@ -77,13 +116,15 @@ public class UserService {
         return dto;
     }
 
-    public EditUserProfileRequestDto editUserProfile(EditUserProfileRequestDto editRequest) {
+    public EditUserProfileRequestDto editUserProfile(Integer userId, EditUserProfileRequestDto editRequest) {
         // ใช้ findByEmail แล้วเช็คว่ามีข้อมูลไหม
-        User user = userRepository.findByEmail(editRequest.getEmail())
-        .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + editRequest.getEmail()));
+        User user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
         // ถ้าผ่านบรรทัดบนมาได้ แปลว่าเจอ User แน่นอน
         user.setFirstName(editRequest.getFirstName());
-        user.setLastName(editRequest.getLastName());    
+        user.setLastName(editRequest.getLastName()); 
+        // user.setEmail(editRequest.getEmail());   
         user.setPhone(editRequest.getPhone());
         user.setAddress(editRequest.getAddress());
         user.setPostCode(editRequest.getPostCode());   
@@ -101,5 +142,25 @@ public class UserService {
 
         User updatedUser = userRepository.save(user);
         return modelMapper.map(updatedUser, EditUserProfileRequestDto.class);
+    }
+
+    
+    public Integer getUserIdFromToken() {
+        String authorizationHeader = request.getHeader("Authorization");
+
+        String jwtToken = null;
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            jwtToken = authorizationHeader.substring(7);
+        }
+
+        if (jwtToken == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authorization Bearer Token is missing or improperly formatted.");
+        }
+        
+        Integer checkJwtUserId = jwtService.extractUserId(jwtToken);
+        if (checkJwtUserId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired token claims.");
+        }
+        return checkJwtUserId;
     }
 }

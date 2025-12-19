@@ -7,10 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
+import com.int371.eventhub.dto.CityDto;
+import com.int371.eventhub.dto.CountryDto;
 import com.int371.eventhub.dto.EditUserProfileRequestDto;
 import com.int371.eventhub.dto.RegisteredEventDto;
 import com.int371.eventhub.dto.UserProfileDto;
@@ -59,9 +62,33 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/countrys")
+    public ResponseEntity<ApiResponse<List<CountryDto>>> getCountry(){
+        List<CountryDto> countries = userService.getCountry();
+        ApiResponse<List<CountryDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Country fetched successfully",
+                countries
+        );
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/country/{countryId}/citys")
+    public ResponseEntity<ApiResponse<List<CityDto>>> getCity(@PathVariable Integer countryId){
+        List<CityDto> cities = userService.getCity(countryId);
+        ApiResponse<List<CityDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "City fetched successfully",
+                cities
+        );
+        return ResponseEntity.ok(response);
+    }
+
+
     @PostMapping("/me/profile")
     public ResponseEntity<ApiResponse<EditUserProfileRequestDto>> editUserProfile(@RequestBody EditUserProfileRequestDto editRequest) {
-        EditUserProfileRequestDto updatedProfile = userService.editUserProfile(editRequest);
+        Integer userId = userService.getUserIdFromToken();
+        System.err.println("userId: " + userId);
+        EditUserProfileRequestDto updatedProfile = userService.editUserProfile(userId,editRequest);
 
         ApiResponse<EditUserProfileRequestDto> response = new ApiResponse<>(
                 HttpStatus.OK.value(),

@@ -10,6 +10,7 @@ public class UserProfileDto {
     private String email;
     private String role;
     private String phone;
+    private String address;
     private JobDto job;
     private CountryDto country;
     private CityDto city;
