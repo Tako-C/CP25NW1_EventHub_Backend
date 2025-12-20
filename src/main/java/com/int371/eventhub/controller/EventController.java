@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
@@ -22,7 +23,7 @@ import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.service.EventService;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+// import org.springframework.web.bind.annotation.RequestBody;
 
 
 @RestController
@@ -84,4 +85,21 @@ public class EventController {
             return ResponseEntity.status(500).body(new ApiResponse<>(500, "Error deleting event: " + e.getMessage(), null));
         }
     }
+    
+    @DeleteMapping("/{id}/images")
+    public ResponseEntity<ApiResponse<Object>> deleteEventImage(
+            @PathVariable Integer id,
+            @RequestParam String category,
+            @RequestParam(required = false) Integer index) {
+
+        eventService.deleteEventImage(id, category, index);  
+        ApiResponse<Object> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Image deleted successfully",
+                null
+        );
+    return ResponseEntity.ok(response);
+    }
+
+
 }

@@ -22,11 +22,11 @@ import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.CountryRepository;
+import com.int371.eventhub.repository.JobRepository;
 import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
 import com.int371.eventhub.repository.CityRepository;
 
-import jakarta.persistence.criteria.CriteriaBuilder.In;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Service
@@ -52,6 +52,9 @@ public class UserService {
 
     @Autowired
     private CityRepository cityRepository;
+
+    @Autowired
+    private JobRepository jobRepository;
 
 
     public List<CountryDto> getCountry() {
@@ -117,11 +120,33 @@ public class UserService {
     }
 
     public EditUserProfileRequestDto editUserProfile(Integer userId, EditUserProfileRequestDto editRequest) {
+
+        if(editRequest.getFirstName() == null || editRequest.getLastName() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "First name and Last name cannot be null.");
+        }
+        if (editRequest.getJob() == null || editRequest.getCountry() == null || editRequest.getCity() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Job, Country, and City cannot be null.");
+        } else{
+            // Validate Job
+            if (!jobRepository.existsById(editRequest.getJob().getId())) {
+                throw new ResourceNotFoundException("Job not found with ID: " + editRequest.getJob().getId());
+            }
+            // Validate Country
+            if (!countryRepository.existsById(editRequest.getCountry().getId())) {
+                throw new ResourceNotFoundException("Country not found with ID: " + editRequest.getCountry().getId());
+            }
+            // Validate City
+            if (!cityRepository.existsById(editRequest.getCity().getId())) {
+                throw new ResourceNotFoundException("City not found with ID: " + editRequest.getCity().getId());
+            }
+        }
+
         // ใช้ findByEmail แล้วเช็คว่ามีข้อมูลไหม
         User user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
         // ถ้าผ่านบรรทัดบนมาได้ แปลว่าเจอ User แน่นอน
+        
         user.setFirstName(editRequest.getFirstName());
         user.setLastName(editRequest.getLastName()); 
         // user.setEmail(editRequest.getEmail());   
