@@ -82,4 +82,8 @@ public class JwtService {
         System.out.println("Claims: " + claims);
         return claims.get("userId", Integer.class);
     }
+    // public String extractUserEmail(String token) {
+    //     final Claims claims = extractAllClaims(token);
+    //     return claims.getSubject();   
+    // }
 }

@@ -18,4 +18,7 @@ public class City {
 
     @Column(name = "NAME_EN")
     private String cityNameEn;
+    
+    @Column(name = "COUNTRY_ID")
+    private Integer countryId;
 }

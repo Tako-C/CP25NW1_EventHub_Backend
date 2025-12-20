@@ -1,12 +1,14 @@
 package com.int371.eventhub.entity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -29,7 +31,7 @@ public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ID")
+    @Column(name = "ID",insertable = false, updatable = false)
     private Integer id;
 
     @Column(name = "NAME")
@@ -78,7 +80,11 @@ public class Event {
     @Column(name = "UPDATED_AT", nullable = false)
     private LocalDateTime updatedAt;
 
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "EVENT_ID", referencedColumnName = "ID")
-    private List<EventImage> images;
+    // @OneToMany(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "EVENT_ID", referencedColumnName = "ID")
+    // private List<EventImage> images;
+
+    // ใน Event.java
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EventImage> images = new ArrayList<>();
 }
