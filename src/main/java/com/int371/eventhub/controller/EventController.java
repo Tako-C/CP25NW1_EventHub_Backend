@@ -23,6 +23,7 @@ import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.service.EventService;
 import org.springframework.web.bind.annotation.PutMapping;
+import com.int371.eventhub.dto.EventTypeDto;
 // import org.springframework.web.bind.annotation.RequestBody;
 
 
@@ -99,6 +100,18 @@ public class EventController {
                 null
         );
     return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/types")
+    public ResponseEntity<ApiResponse<List<EventTypeDto>>> getAllEventTypes() {
+        List<EventTypeDto> eventTypes = eventService.getAllEventTypes();
+        
+        ApiResponse<List<EventTypeDto>> response = new ApiResponse<>(
+            HttpStatus.OK.value(), 
+            "Event types fetched successfully", 
+            eventTypes
+        );
+        return ResponseEntity.ok(response);
     }
 
 

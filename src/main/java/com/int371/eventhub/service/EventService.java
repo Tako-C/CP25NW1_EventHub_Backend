@@ -601,19 +601,21 @@ import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.EventTypeRepository;
 import com.int371.eventhub.repository.ImageCategoryRepository;
+import com.int371.eventhub.dto.EventTypeDto; 
 
 import jakarta.transaction.Transactional;
 
 @Service
 public class EventService {
 
-    @Value("${app.upload.base-path:uploads/}")
+    @Value("${app.qr-code.storage-path}")
     private String uploadBaseDir;
 
     @Autowired private EventRepository eventRepository;
     @Autowired private EventTypeRepository eventTypeRepository;
     @Autowired private ImageCategoryRepository categoryRepository;
     @Autowired private ModelMapper modelMapper;
+
 
     private static final Set<String> CATEGORIES_FOR_ALL_EVENTS = Set.of("card", "slideshow");
     private static final Set<String> CATEGORIES_FOR_EVENT_BY_ID = Set.of("card", "slideshow", "detail", "map");
@@ -918,6 +920,14 @@ public class EventService {
 
         dto.setImages(imageDto);
         return dto;
+    }
+
+    public List<EventTypeDto> getAllEventTypes() {
+        List<EventType> eventTypes = eventTypeRepository.findAll();
+        
+        return eventTypes.stream()
+                .map(type -> modelMapper.map(type, EventTypeDto.class))
+                .toList();
     }
 
     // private EventResponseDto convertEventToDtoWithImageStructure(Event event, Set<String> allowed) {
