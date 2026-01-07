@@ -21,7 +21,7 @@ public class EventhubApplication {
     @Bean
     public CommandLineRunner commandLineRunner(PasswordEncoder passwordEncoder) {
         return args -> {
-            String rawPassword = "pass123";
+            String rawPassword = "pass1234";
             String encodedPassword = passwordEncoder.encode(rawPassword);
 
             System.out.println("--- GENERATED HASHED PASSWORD ---");
