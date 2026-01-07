@@ -114,5 +114,18 @@ public class EventController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("image/types")
+    public ResponseEntity<ApiResponse<List<String>>> getAllEventImageTypes() {
+        List<String> imageTypes = eventService.getAllEventImageTypes();
+        
+        ApiResponse<List<String>> response = new ApiResponse<>(
+            HttpStatus.OK.value(), 
+            "Event image types fetched successfully", 
+            imageTypes
+        );
+        return ResponseEntity.ok(response);
+    }
+    
+
 
 }

@@ -608,7 +608,7 @@ import jakarta.transaction.Transactional;
 @Service
 public class EventService {
 
-    @Value("${app.qr-code.storage-path}")
+    @Value("${app.event-image.storage-path}")
     private String uploadBaseDir;
 
     @Autowired private EventRepository eventRepository;
@@ -927,6 +927,14 @@ public class EventService {
         
         return eventTypes.stream()
                 .map(type -> modelMapper.map(type, EventTypeDto.class))
+                .toList();
+    }
+    
+    public List<String> getAllEventImageTypes() {
+        List<ImageCategory> categories = categoryRepository.findAll();
+        
+        return categories.stream()
+                .map(ImageCategory::getCategoryName)
                 .toList();
     }
 
