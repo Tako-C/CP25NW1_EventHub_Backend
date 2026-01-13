@@ -17,6 +17,7 @@ import com.int371.eventhub.dto.CountryDto;
 import com.int371.eventhub.dto.EditUserProfileRequestDto;
 import com.int371.eventhub.dto.RegisteredEventDto;
 import com.int371.eventhub.dto.UserProfileDto;
+import com.int371.eventhub.entity.Job;
 import com.int371.eventhub.service.UserService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -62,6 +63,17 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/jobs")
+    public ResponseEntity<ApiResponse<List<com.int371.eventhub.entity.Job>>> getJob(){
+        List<Job> jobs = userService.getJob();
+        ApiResponse<List<com.int371.eventhub.entity.Job>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Job fetched successfully",
+                jobs
+        );
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/countrys")
     public ResponseEntity<ApiResponse<List<CountryDto>>> getCountry(){
         List<CountryDto> countries = userService.getCountry();
@@ -72,6 +84,7 @@ public class UserController {
         );
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/country/{countryId}/citys")
     public ResponseEntity<ApiResponse<List<CityDto>>> getCity(@PathVariable Integer countryId){
         List<CityDto> cities = userService.getCity(countryId);
