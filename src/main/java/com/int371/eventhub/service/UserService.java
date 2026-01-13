@@ -18,6 +18,7 @@ import com.int371.eventhub.entity.City;
 import com.int371.eventhub.entity.Country;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventImage;
+import com.int371.eventhub.entity.Job;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
@@ -56,6 +57,13 @@ public class UserService {
     @Autowired
     private JobRepository jobRepository;
 
+
+    public List<Job> getJob() {
+       List<Job> jobs = jobRepository.findAll();
+       return jobs.stream()
+               .map(job -> modelMapper.map(job, Job.class))
+               .toList();   
+    }
 
     public List<CountryDto> getCountry() {
        List<Country> countries = countryRepository.findAll();
@@ -154,16 +162,20 @@ public class UserService {
         user.setAddress(editRequest.getAddress());
         user.setPostCode(editRequest.getPostCode());   
         
+        Job findJob = jobRepository.findById(editRequest.getJob().getId()).orElse(null);
+        City findCity = cityRepository.findById(editRequest.getCity().getId()).orElse(null);
+        Country findCountry = countryRepository.findById(editRequest.getCountry().getId()).orElse(null);
+        
         // Mapping Nested Objects
-        // if (editRequest.getJob() != null) {
+        if (findJob!= null) {
             user.setJob(modelMapper.map(editRequest.getJob(), com.int371.eventhub.entity.Job.class));
-        // }
-        // if (editRequest.getCountry() != null) {
+        } else
+        if (findCity != null) {
             user.setCountry(modelMapper.map(editRequest.getCountry(), com.int371.eventhub.entity.Country.class));
-        // }
-        // if (editRequest.getCity() != null) {
+        }
+        if (findCountry != null) {
             user.setCity(modelMapper.map(editRequest.getCity(), com.int371.eventhub.entity.City.class));
-        // }
+        }
 
         User updatedUser = userRepository.save(user);
         return modelMapper.map(updatedUser, EditUserProfileRequestDto.class);
