@@ -28,12 +28,16 @@ public class OtpService {
     private final Cache registrationCooldownCache;
     private final Cache loginOtpCache;
     private final Cache loginCooldownCache;
+    private final Cache forgotPasswordOtpCache;
+    private final Cache forgotPasswordCooldownCache;
 
     public OtpService(CacheManager cacheManager) {
         this.registrationOtpCache = cacheManager.getCache("registrationOtp");
         this.registrationCooldownCache = cacheManager.getCache("registrationCooldown");
         this.loginOtpCache = cacheManager.getCache("loginOtp");
         this.loginCooldownCache = cacheManager.getCache("loginCooldown");
+        this.forgotPasswordOtpCache = cacheManager.getCache("forgotPasswordOtp");
+        this.forgotPasswordCooldownCache = cacheManager.getCache("forgotPasswordCooldown");
     }
 
     public void generateAndSendOtp(RegisterOtpRequestDto request) {
@@ -96,5 +100,30 @@ public class OtpService {
             throw new RuntimeException("Unable to send OTP email, please try again later.");
         }
         return otp;
+    }
+     // 1. สร้างและส่ง OTP สำหรับ Forgot Password
+    public void generateAndSendForgotPasswordOtp(String email) {
+        // ตรวจสอบก่อนว่ามี User นี้จริงไหม (กันคนแกล้งส่งมั่ว)
+        if (!userRepository.existsByEmail(email)) {
+            // อาจจะ throw exception หรือแค่ return เพื่อไม่ให้ hacker รู้ว่าอีเมลนี้ไม่มีจริง
+            throw new ResourceNotFoundException("User with this email not found.");
+        }
+        // ใช้ logic กลางที่คุณทำไว้ (ได้ทั้ง OTP และจัดการ Cooldown 1 นาที)
+        String otp = generateAndSendOtpLogic(email, forgotPasswordCooldownCache);
+        // เก็บ OTP ลง cache แยกต่างหาก
+        forgotPasswordOtpCache.put(email, otp);
+    }
+
+    // 2. ยืนยัน OTP
+    public void verifyForgotPasswordOtp(String email, String otp) {
+        String storedOtp = forgotPasswordOtpCache.get(email, String.class);
+        if (storedOtp == null) {
+            throw new IllegalArgumentException("Verification failed. OTP has expired or was never requested.");
+        }
+        if (!storedOtp.equals(otp)) {
+            throw new IllegalArgumentException("Invalid OTP code.");
+        }
+        // ยืนยันสำเร็จ ลบออกจาก cache ทันทีเพื่อป้องกันการใช้ซ้ำ (Replay Attack)
+        forgotPasswordOtpCache.evict(email);
     }
 }

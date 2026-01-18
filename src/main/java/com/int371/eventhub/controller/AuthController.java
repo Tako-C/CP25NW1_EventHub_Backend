@@ -85,4 +85,18 @@ public class AuthController {
         );
         return ResponseEntity.ok(response);
     }
+
+    // ขอ OTP สำหรับรีเซ็ตรหัสผ่าน
+    @PostMapping("/password/forgot")
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto request) {
+        otpService.generateAndSendForgotPasswordOtp(request.getEmail());
+        return ResponseEntity.ok(new ApiResponse<>(200, "OTP sent to email", request.getEmail()));
+    }
+
+    // ตรวจสอบ OTP และเปลี่ยนรหัสผ่านใหม่
+    @PostMapping("/password/reset")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto request) {
+        authService.resetPasswordWithOtp(request);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Password has been reset successfully", null));
+    }
 }
