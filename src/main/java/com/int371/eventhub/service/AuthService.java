@@ -14,6 +14,7 @@ import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.dto.LoginRequestDto;
 import com.int371.eventhub.dto.OtpData;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
+import com.int371.eventhub.dto.ResetPasswordRequestDto;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.UserRole;
 import com.int371.eventhub.entity.UserStatus;
@@ -111,5 +112,28 @@ public class AuthService {
             password.append(PASSWORD_CHARACTERS.charAt(RANDOM.nextInt(PASSWORD_CHARACTERS.length())));
         }
         return password.toString();
+    }
+
+    public void resetPasswordWithOtp(ResetPasswordRequestDto request) {
+        
+        // ตรวจสอบว่ารหัสผ่านทั้งสองช่องตรงกันหรือไม่
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match.");
+        }
+        // ตรวจสอบ OTP ว่าถูกต้องไหม (ใช้ OtpService ที่คุณมี)
+        otpService.verifyForgotPasswordOtp(request.getEmail(), request.getOtp());
+
+        // ค้นหา User
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // *** เพิ่มเงื่อนไข: ตรวจสอบว่ารหัสผ่านใหม่ต้องไม่เหมือนรหัสผ่านเดิม ***
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password cannot be the same as the old password.");
+        }
+        
+        // Encode รหัสผ่านใหม่และบันทึก
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }
