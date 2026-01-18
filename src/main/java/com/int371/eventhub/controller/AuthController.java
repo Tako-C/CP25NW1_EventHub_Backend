@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
+import com.int371.eventhub.dto.ForgotPasswordRequestDto;
 import com.int371.eventhub.dto.JwtResponse;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.dto.LoginOtpRequestDto;
 import com.int371.eventhub.dto.LoginRequestDto;
 import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
+import com.int371.eventhub.dto.ResetPasswordRequestDto;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.service.AuthService;
 import com.int371.eventhub.service.OtpService;
@@ -84,5 +86,19 @@ public class AuthController {
                 new JwtResponse(token)
         );
         return ResponseEntity.ok(response);
+    }
+
+    // ขอ OTP สำหรับรีเซ็ตรหัสผ่าน
+    @PostMapping("/password/forgot")
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto request) {
+        otpService.generateAndSendForgotPasswordOtp(request.getEmail());
+        return ResponseEntity.ok(new ApiResponse<>(200, "OTP sent to email", request.getEmail()));
+    }
+
+    // ตรวจสอบ OTP และเปลี่ยนรหัสผ่านใหม่
+    @PostMapping("/password/reset")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto request) {
+        authService.resetPasswordWithOtp(request);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Password has been reset successfully", null));
     }
 }
