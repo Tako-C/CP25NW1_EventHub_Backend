@@ -101,7 +101,7 @@ public class OtpService {
         }
         return otp;
     }
-     // 1. สร้างและส่ง OTP สำหรับ Forgot Password
+    // 1. สร้างและส่ง OTP สำหรับ Forgot Password
     public void generateAndSendForgotPasswordOtp(String email) {
         // ตรวจสอบก่อนว่ามี User นี้จริงไหม (กันคนแกล้งส่งมั่ว)
         if (!userRepository.existsByEmail(email)) {

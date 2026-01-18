@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
+import com.int371.eventhub.dto.ForgotPasswordRequestDto;
 import com.int371.eventhub.dto.JwtResponse;
 import com.int371.eventhub.dto.LoginOtpAndEventRegisterVerifyRequestDto;
 import com.int371.eventhub.dto.LoginOtpRequestDto;
 import com.int371.eventhub.dto.LoginRequestDto;
 import com.int371.eventhub.dto.RegisterOtpRequestDto;
 import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
+import com.int371.eventhub.dto.ResetPasswordRequestDto;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.service.AuthService;
 import com.int371.eventhub.service.OtpService;
