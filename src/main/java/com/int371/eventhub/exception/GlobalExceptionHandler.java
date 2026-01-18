@@ -3,6 +3,7 @@ package com.int371.eventhub.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -161,5 +162,15 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(errorResponse, ex.getStatusCode());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        ApiResponse<Object> response = new ApiResponse<>(
+                HttpStatus.FORBIDDEN.value(),
+                "Access Denied: " + ex.getMessage(),
+                null
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 }
