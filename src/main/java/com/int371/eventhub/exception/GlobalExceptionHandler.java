@@ -181,7 +181,7 @@ public class GlobalExceptionHandler {
 
         ApiResponse<?> errorResponse = new ApiResponse<>(
                 HttpStatus.BAD_REQUEST.value(),
-                "File size exceeds the maximum limit! (Maximum allowed is 5MB)",
+                "File size exceeds the maximum limit! (Maximum allowed is 5MB per file)",
                 "File Too Large",
                 request.getRequestURI()
         );
