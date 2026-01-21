@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,11 +20,12 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.EditEventRequestDto;
 import com.int371.eventhub.dto.EventRequestDto;
 import com.int371.eventhub.dto.EventResponseDto;
+import com.int371.eventhub.dto.EventTypeDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.service.EventService;
-import org.springframework.web.bind.annotation.PutMapping;
-import com.int371.eventhub.dto.EventTypeDto;
+
+import jakarta.validation.Valid;
 // import org.springframework.web.bind.annotation.RequestBody;
 
 
@@ -56,7 +58,7 @@ public class EventController {
     }
 
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(@ModelAttribute EventRequestDto dto) {
+    public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(@Valid @ModelAttribute EventRequestDto dto) {
         Event event = eventService.createEvent(dto);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
             HttpStatus.CREATED.value(),
@@ -66,7 +68,7 @@ public class EventController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<EventResponseDto>> updateEvent(@PathVariable Integer id, @ModelAttribute EditEventRequestDto dto) {
+    public ResponseEntity<ApiResponse<EventResponseDto>> updateEvent(@PathVariable Integer id, @Valid@ModelAttribute EditEventRequestDto dto) {
         Event updatedEvent = eventService.updateEvent(id, dto);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
             HttpStatus.OK.value(),

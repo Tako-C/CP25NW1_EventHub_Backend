@@ -9,7 +9,6 @@ import lombok.Data;
 
 @Data
 public class EditEventRequestDto {
-    
     private String eventName;
     private String eventDesc;
     private Integer eventTypeId;

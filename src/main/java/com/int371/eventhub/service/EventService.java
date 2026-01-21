@@ -579,9 +579,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-// import java.util.Map;
 import java.util.Set;
-// import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -593,15 +591,16 @@ import com.int371.eventhub.dto.EditEventRequestDto;
 import com.int371.eventhub.dto.EventImageResponseDto;
 import com.int371.eventhub.dto.EventRequestDto;
 import com.int371.eventhub.dto.EventResponseDto;
+import com.int371.eventhub.dto.EventTypeDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventImage;
+import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.EventType;
 import com.int371.eventhub.entity.ImageCategory;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.EventTypeRepository;
 import com.int371.eventhub.repository.ImageCategoryRepository;
-import com.int371.eventhub.dto.EventTypeDto; 
 
 import jakarta.transaction.Transactional;
 
@@ -623,15 +622,19 @@ public class EventService {
     // ========================= GET =========================
 
     public List<EventResponseDto> getAllEvents() {
-        List<Event> events = eventRepository.findAll();
-        if (events.isEmpty()) throw new ResourceNotFoundException("No events available.");
+        List<Event> events = eventRepository.findAllByStatusNot(EventStatus.DELETED);
+        
+        if (events.isEmpty()) {
+            throw new ResourceNotFoundException("No active events available."); 
+        }
+        
         return events.stream()
                 .map(e -> convertEventToDtoWithImageStructure(e, CATEGORIES_FOR_ALL_EVENTS))
                 .toList();
     }
 
     public EventResponseDto getEventById(Integer id) {
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findByIdAndStatusNot(id, EventStatus.DELETED)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
         return convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_EVENT_BY_ID);
     }
@@ -695,6 +698,10 @@ public class EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ResourceNotFoundException("Event not found or has been deleted");
+        }
+
         Integer eventId = event.getId();
 
         event.setEventName(dto.getEventName());
@@ -744,19 +751,17 @@ public class EventService {
     // ========================= DELETE =========================
     @Transactional
     public void deleteEvent(Integer id) {
-
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
-        // 1. ลบไฟล์รูปทั้งหมด
-        if (event.getImages() != null) {
-            for (EventImage img : event.getImages()) {
-                deleteImageFile(img.getImgPathEv());
-            }
-        }
-
-        // 2. ลบ Event (cascade ลบ images ใน DB)
-        eventRepository.delete(event);
+        // if (event.getImages() != null) {
+        //     for (EventImage img : event.getImages()) {
+        //         deleteImageFile(img.getImgPathEv());
+        //     }
+        // }
+        // eventRepository.delete(event);
+        event.setStatus(EventStatus.DELETED);
+        eventRepository.save(event);
     }
 
     @Transactional

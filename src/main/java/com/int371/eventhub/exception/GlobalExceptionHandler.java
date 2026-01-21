@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.int371.eventhub.dto.ApiResponse;
 
@@ -172,5 +173,19 @@ public class GlobalExceptionHandler {
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex, HttpServletRequest request) {
+
+        ApiResponse<?> errorResponse = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                "File size exceeds the maximum limit! (Maximum allowed is 5MB)",
+                "File Too Large",
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }

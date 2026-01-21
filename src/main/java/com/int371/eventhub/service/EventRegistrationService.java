@@ -32,6 +32,7 @@ import com.int371.eventhub.dto.RegisterOtpVerifyRequestDto;
 import com.int371.eventhub.dto.SearchUserCheckInRequestDto;
 import com.int371.eventhub.dto.SearchUserCheckInResponseDto;
 import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventId;
 import com.int371.eventhub.entity.MemberEventRole;
@@ -85,7 +86,10 @@ public class EventRegistrationService {
     public String requestEventOtp(Integer eventId, EventRegisterRequestDto request) {
         String email = request.getEmail();
 
-        if (!eventRepository.existsById(eventId)) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        if (event.getStatus() == EventStatus.DELETED) {
             throw new ResourceNotFoundException("Event not found with id: " + eventId);
         }
 
@@ -122,6 +126,10 @@ public class EventRegistrationService {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
 
         Cache loginOtpCache = cacheManager.getCache("loginOtp");
         Cache registrationOtpCache = cacheManager.getCache("registrationOtp");
@@ -214,6 +222,10 @@ public class EventRegistrationService {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
 
         boolean alreadyRegistered = memberEventRepository.existsByUserIdAndEventId(user.getId(), event.getId());
 

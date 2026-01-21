@@ -12,6 +12,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -79,6 +81,10 @@ public class Event {
     @Column(name = "UPDATED_AT", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "STATUS", nullable = false)
+    private EventStatus status;
+
     // @OneToMany(fetch = FetchType.LAZY)
     // @JoinColumn(name = "EVENT_ID", referencedColumnName = "ID")
     // private List<EventImage> images;
@@ -86,4 +92,10 @@ public class Event {
     // ใน Event.java
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EventImage> images = new ArrayList<>();
+
+    @java.lang.SuppressWarnings(value = "all")
+    @lombok.Generated
+    public Event() {
+        this.status = EventStatus.UPCOMING;
+    }
 }

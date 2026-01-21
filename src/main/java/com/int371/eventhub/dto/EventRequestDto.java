@@ -5,19 +5,24 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
 @Data
 public class EventRequestDto {
+    @NotBlank(message = "Event name is required")
     private String eventName;
     private String eventDesc;
+    @NotNull(message = "Event type is required")
     private Integer eventTypeId; // รับเป็น ID เพื่อความง่ายในการ Map
     private String location;
     private String hostOrganisation;
     private Integer createdBy;
     private String contactLine;
+    @NotBlank(message = "Contact email is required")
     private String contactEmail;
     private String contactFacebook;
+    @NotBlank(message = "Contact phone is required")
     private String contactPhone;
     private LocalDateTime startDate;
     private LocalDateTime endDate;

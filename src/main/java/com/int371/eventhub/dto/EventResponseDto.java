@@ -2,6 +2,7 @@ package com.int371.eventhub.dto;
 
 import java.time.LocalDateTime;
 
+import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.EventType;
 
 import lombok.Data;
@@ -23,5 +24,6 @@ public class EventResponseDto {
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private EventStatus status;
     private EventImageResponseDto images;
 }
