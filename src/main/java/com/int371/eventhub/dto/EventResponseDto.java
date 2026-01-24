@@ -26,4 +26,7 @@ public class EventResponseDto {
     private LocalDateTime updatedAt;
     private EventStatus status;
     private EventImageResponseDto images;
+    private boolean hasPreSurvey;
+    private boolean hasPostSurvey;
+    
 }

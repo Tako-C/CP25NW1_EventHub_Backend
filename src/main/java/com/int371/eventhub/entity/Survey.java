@@ -1,5 +1,7 @@
 package com.int371.eventhub.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -43,4 +45,10 @@ public class Survey {
     @Enumerated(EnumType.STRING)
     @Column(name = "SURVEYS_TYPE", nullable = false)
     private SurveyType type;
+
+    @Column(name = "CREATED_AT", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt;
 }

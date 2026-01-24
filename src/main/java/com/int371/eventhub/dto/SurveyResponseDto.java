@@ -1,5 +1,6 @@
 package com.int371.eventhub.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.int371.eventhub.entity.SurveyStatus;
@@ -15,6 +16,8 @@ public class SurveyResponseDto {
     private Integer points;
     private SurveyStatus status;
     private SurveyType type;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     private List<QuestionResponseDto> questions;
 }

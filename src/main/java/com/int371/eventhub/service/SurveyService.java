@@ -99,6 +99,8 @@ public class SurveyService {
 
             // 4. เอา List คำถามใส่กลับไปใน Survey DTO
             surveyDto.setQuestions(questionDtos);
+            surveyDto.setCreatedAt(survey.getCreatedAt());
+            surveyDto.setUpdatedAt(survey.getUpdatedAt());
             
             // แยกประเภทตามเดิม
             if (survey.getType() == visitorType) {
