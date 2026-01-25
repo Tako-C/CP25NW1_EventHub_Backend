@@ -2,6 +2,8 @@ package com.int371.eventhub.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,8 @@ import com.int371.eventhub.dto.CreateSurveyRequestDto;
 import com.int371.eventhub.dto.QuestionResponseDto;
 import com.int371.eventhub.dto.SurveyGroupResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.UpdateQuestionDto;
+import com.int371.eventhub.dto.UpdateSurveyRequestDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
@@ -51,23 +55,21 @@ public class SurveyService {
     @Autowired
     private ModelMapper modelMapper;
 
-    // ดึง Pre-Survey (Visitor & Exhibitor)
+    // ดึง Pre-Survey
     public SurveyGroupResponseDto getPreSurveys(Integer eventId) {
         return getSurveysByTypes(eventId, SurveyType.PRE_VISITOR, SurveyType.PRE_EXHIBITOR);
     }
 
-    // ดึง Post-Survey (Visitor & Exhibitor)
+    // ดึง Post-Survey
     public SurveyGroupResponseDto getPostSurveys(Integer eventId) {
         return getSurveysByTypes(eventId, SurveyType.POST_VISITOR, SurveyType.POST_EXHIBITOR);
     }
 
     private SurveyGroupResponseDto getSurveysByTypes(Integer eventId, SurveyType visitorType, SurveyType exhibitorType) {
-        // เช็คว่ามี Event จริงไหม
         if (!eventRepository.existsById(eventId)) {
             throw new ResourceNotFoundException("Event not found with id: " + eventId);
         }
 
-        // ดึง Survey ทั้งหมดของ Event นี้ที่ Active และอยู่ใน Type ที่ระบุ
         List<Survey> surveys = surveyRepository.findByEventIdAndStatusAndTypeIn(
             eventId, 
             SurveyStatus.ACTIVE, 
@@ -82,27 +84,21 @@ public class SurveyService {
         SurveyResponseDto exhibitorSurvey = null;
 
         for (Survey survey : surveys) {
-            // 1. Map Survey พื้นฐาน
             SurveyResponseDto surveyDto = modelMapper.map(survey, SurveyResponseDto.class);
 
-            // 2. ดึง Questions ของ Survey นี้
             List<Question> questions = questionRepository.findBySurveyId(survey.getId());
             
-            // 3. Map Questions -> QuestionDto (รวมการจัด format choices)
             List<QuestionResponseDto> questionDtos = new ArrayList<>();
             for (Question q : questions) {
                 QuestionResponseDto qDto = modelMapper.map(q, QuestionResponseDto.class);
-                // จัดการรวม answer_1-5 เป็น List
                 qDto.setChoicesFromAnswers(q.getAnswer1(), q.getAnswer2(), q.getAnswer3(), q.getAnswer4(), q.getAnswer5());
                 questionDtos.add(qDto);
             }
 
-            // 4. เอา List คำถามใส่กลับไปใน Survey DTO
             surveyDto.setQuestions(questionDtos);
             surveyDto.setCreatedAt(survey.getCreatedAt());
             surveyDto.setUpdatedAt(survey.getUpdatedAt());
             
-            // แยกประเภทตามเดิม
             if (survey.getType() == visitorType) {
                 visitorSurvey = surveyDto;
             } else if (survey.getType() == exhibitorType) {
@@ -113,17 +109,14 @@ public class SurveyService {
         return new SurveyGroupResponseDto(visitorSurvey, exhibitorSurvey);
     }
 
-    @Transactional // สำคัญ! เพื่อให้ save survey และ questions เป็น Transaction เดียวกัน ถ้า error ให้ rollback ทั้งหมด
+    @Transactional
     public SurveyResponseDto createSurvey(Integer eventId, CreateSurveyRequestDto request, String userEmail) {
-        // 1. หา User จาก Email (ได้มาจาก Token)
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // 2. หา Event
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
 
-        // 3. ตรวจสอบสิทธิ์ (Must be ORGANIZER of this event)
         MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user)
                 .orElseThrow(() -> new AccessDeniedException("User is not a member of this event"));
 
@@ -131,7 +124,7 @@ public class SurveyService {
             throw new AccessDeniedException("Only event organizer can create surveys");
         }
 
-        // 4. สร้างและบันทึก Survey
+
         Survey survey = new Survey();
         survey.setName(request.getName());
         survey.setDescription(request.getDescription());
@@ -142,7 +135,6 @@ public class SurveyService {
         
         Survey savedSurvey = surveyRepository.save(survey);
 
-        // 5. สร้างและบันทึก Questions
         if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
             List<Question> questionsToSave = new ArrayList<>();
             
@@ -155,7 +147,7 @@ public class SurveyService {
                 // Map choices (List -> Columns)
                 List<String> choices = qDto.getChoices();
                 if (choices != null) {
-                    if (choices.size() > 0) q.setAnswer1(choices.get(0));
+                    if (!choices.isEmpty()) q.setAnswer1(choices.get(0));
                     if (choices.size() > 1) q.setAnswer2(choices.get(1));
                     if (choices.size() > 2) q.setAnswer3(choices.get(2));
                     if (choices.size() > 3) q.setAnswer4(choices.get(3));
@@ -166,11 +158,109 @@ public class SurveyService {
             questionRepository.saveAll(questionsToSave);
         }
 
-        // 6. Return ผลลัพธ์ (เรียกใช้ method getPreSurveys/PostSurveys หรือ return Dto ธรรมดา)
-        // เพื่อความง่าย ผม map กลับเป็น DTO ของตัวที่เพิ่งสร้าง
         SurveyResponseDto response = modelMapper.map(savedSurvey, SurveyResponseDto.class);
-        // (Optional: ถ้าต้องการ return questions กลับไปด้วย ต้อง map questions ใส่ response manually ตรงนี้)
-        
         return response;
+    }
+
+    @Transactional
+    public SurveyResponseDto updateSurvey(Integer eventId, Integer surveyId, UpdateSurveyRequestDto request, String userEmail) {
+        checkOrganizerPermission(eventId, userEmail);
+
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
+
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey id " + surveyId + " does not belong to event id " + eventId);
+        }
+
+        survey.setName(request.getName());
+        survey.setDescription(request.getDescription());
+        survey.setPoints(request.getPoints());
+        survey.setType(request.getType());
+
+        Survey savedSurvey = surveyRepository.save(survey);
+
+        if (request.getQuestions() != null) {
+            List<Question> existingQuestions = questionRepository.findBySurveyId(surveyId);
+            Map<Integer, Question> existingMap = existingQuestions.stream()
+                    .collect(Collectors.toMap(Question::getId, q -> q));
+
+            List<Question> questionsToSave = new ArrayList<>();
+            List<Integer> incomingIds = new ArrayList<>();
+
+            for (UpdateQuestionDto qDto : request.getQuestions()) {
+                Question question;
+
+                if (qDto.getId() != null && existingMap.containsKey(qDto.getId())) {
+                    question = existingMap.get(qDto.getId());
+                    incomingIds.add(qDto.getId());
+                } else {
+                    question = new Question();
+                    question.setSurvey(savedSurvey);
+                }
+
+                question.setQuestion(qDto.getQuestion());
+                question.setQuestionType(qDto.getQuestionType());
+                
+                mapChoicesToQuestion(question, qDto.getChoices());
+
+                questionsToSave.add(question);
+            }
+
+            List<Question> questionsToDelete = existingQuestions.stream()
+                    .filter(q -> !incomingIds.contains(q.getId()))
+                    .collect(Collectors.toList());
+
+            questionRepository.deleteAll(questionsToDelete);
+            questionRepository.saveAll(questionsToSave);
+        }
+
+        return modelMapper.map(savedSurvey, SurveyResponseDto.class);
+    }
+
+    @Transactional
+    public void deleteSurvey(Integer eventId, Integer surveyId, String userEmail) {
+        checkOrganizerPermission(eventId, userEmail);
+
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
+
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey does not belong to this event");
+        }
+
+        List<Question> questions = questionRepository.findBySurveyId(surveyId);
+        questionRepository.deleteAll(questions);
+
+        surveyRepository.delete(survey);
+    }
+
+    // Helper Method
+    private void checkOrganizerPermission(Integer eventId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user)
+                .orElseThrow(() -> new AccessDeniedException("User is not a member of this event"));
+
+        if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
+            throw new AccessDeniedException("Only event organizer can perform this action");
+        }
+    }
+
+    // Helper Method
+    private void mapChoicesToQuestion(Question q, List<String> choices) {
+        q.setAnswer1(null); q.setAnswer2(null); q.setAnswer3(null); q.setAnswer4(null); q.setAnswer5(null);
+
+        if (choices != null) {
+            if (!choices.isEmpty()) q.setAnswer1(choices.get(0));
+            if (choices.size() > 1) q.setAnswer2(choices.get(1));
+            if (choices.size() > 2) q.setAnswer3(choices.get(2));
+            if (choices.size() > 3) q.setAnswer4(choices.get(3));
+            if (choices.size() > 4) q.setAnswer5(choices.get(4));
+        }
     }
 }

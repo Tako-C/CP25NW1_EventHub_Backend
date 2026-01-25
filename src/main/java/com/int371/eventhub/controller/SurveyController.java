@@ -5,9 +5,11 @@ import java.security.Principal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +18,7 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.CreateSurveyRequestDto;
 import com.int371.eventhub.dto.SurveyGroupResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.UpdateSurveyRequestDto;
 import com.int371.eventhub.service.SurveyService;
 
 @RestController
@@ -64,5 +67,38 @@ public class SurveyController {
                 createdSurvey
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{surveyId}")
+    public ResponseEntity<ApiResponse<SurveyResponseDto>> updateSurvey(
+            @PathVariable Integer eventId,
+            @PathVariable Integer surveyId,
+            @RequestBody UpdateSurveyRequestDto request,
+            Principal principal) {
+        
+        SurveyResponseDto updatedSurvey = surveyService.updateSurvey(eventId, surveyId, request, principal.getName());
+
+        ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Survey updated successfully",
+                updatedSurvey
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{surveyId}")
+    public ResponseEntity<ApiResponse<String>> deleteSurvey(
+            @PathVariable Integer eventId,
+            @PathVariable Integer surveyId,
+            Principal principal) {
+            
+        surveyService.deleteSurvey(eventId, surveyId, principal.getName());
+
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Survey deleted successfully",
+                null
+        );
+        return ResponseEntity.ok(response);
     }
 }
