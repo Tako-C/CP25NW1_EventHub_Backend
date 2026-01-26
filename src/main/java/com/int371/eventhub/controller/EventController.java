@@ -1,5 +1,6 @@
 package com.int371.eventhub.controller;
 
+import java.security.Principal;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,12 +59,13 @@ public class EventController {
     }
 
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(@Valid @ModelAttribute EventRequestDto dto) {
-        Event event = eventService.createEvent(dto);
+    public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(@Valid @ModelAttribute EventRequestDto dto, Principal principal) {
+        String email = principal.getName();
+        EventResponseDto createdEvent = eventService.createEvent( dto, email);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
-            HttpStatus.CREATED.value(),
-            "Event created successfully",
-            eventService.getEventById(event.getId())
+                HttpStatus.CREATED.value(),
+                "Event created successfully",
+                createdEvent
         );
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

@@ -26,13 +26,20 @@ import com.int371.eventhub.entity.EventImage;
 import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.EventType;
 import com.int371.eventhub.entity.ImageCategory;
+import com.int371.eventhub.entity.MemberEvent;
+import com.int371.eventhub.entity.MemberEventId;
+import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.SurveyStatus;
 import com.int371.eventhub.entity.SurveyType;
+import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.EventTypeRepository;
 import com.int371.eventhub.repository.ImageCategoryRepository;
+import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.SurveyRepository;
+import com.int371.eventhub.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -51,6 +58,12 @@ public class EventService {
     @Autowired private SurveyRepository surveyRepository;
 
     @Autowired private ModelMapper modelMapper;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private MemberEventRepository memberEventRepository;
 
 
     private static final Set<String> CATEGORIES_FOR_ALL_EVENTS = Set.of("card", "slideshow");
@@ -134,7 +147,7 @@ public class EventService {
     // ========================= CREATE =========================
 
     @Transactional
-    public Event createEvent(EventRequestDto dto) {
+    public EventResponseDto createEvent(EventRequestDto dto, String email) {
         // VALIDATE slideshow (ห้ามเกิน 3)
         if (dto.getEventSlideshow() != null && dto.getEventSlideshow().size() > 3) {
             throw new IllegalArgumentException("Event slideshow can contain at most 3 images");
@@ -173,7 +186,27 @@ public class EventService {
             }
         }
 
-        return eventRepository.save(event);
+        Event savedEvent = eventRepository.save(event);
+
+        User organizer = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+
+            MemberEvent memberEvent = new MemberEvent();
+
+            MemberEventId memberEventId = new MemberEventId();
+            memberEventId.setUserId(organizer.getId());
+            memberEventId.setEventId(savedEvent.getId());
+            memberEvent.setId(memberEventId);
+
+            memberEvent.setUser(organizer);
+            memberEvent.setEvent(savedEvent);
+
+            memberEvent.setEventRole(MemberEventRole.ORGANIZER);
+            memberEvent.setStatus(MemberEventStatus.REGISTRATION); 
+
+            memberEventRepository.save(memberEvent);
+
+        return modelMapper.map(savedEvent, EventResponseDto.class);
     }
 
     // ========================= UPDATE =========================
