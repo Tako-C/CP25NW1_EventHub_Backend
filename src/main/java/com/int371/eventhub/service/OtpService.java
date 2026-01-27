@@ -88,9 +88,15 @@ public class OtpService {
     }
 
     private String generateAndSendOtpLogic(String email, org.springframework.cache.Cache cooldownCache) {
-        if (cooldownCache.get(email) != null) {
-            throw new RequestCooldownException("Please wait 1 minute before requesting another OTP.");
+        String timeText = "1 minute";
+        if ("forgotPasswordCooldown".equals(cooldownCache.getName()) || "forgotPasswordOtp".equals(cooldownCache.getName())) {
+            timeText = "5 minutes";
         }
+
+        if (cooldownCache.putIfAbsent(email, true) != null) {
+            throw new RequestCooldownException("Please wait " + timeText + " before requesting another OTP.");
+        }
+
         String otp = new SecureRandom().ints(0, 10).limit(6).mapToObj(String::valueOf).reduce("", String::concat);
 
         try {

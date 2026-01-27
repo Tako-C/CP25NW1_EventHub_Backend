@@ -41,6 +41,18 @@ public class CacheConfig {
                         .expireAfterWrite(1, TimeUnit.MINUTES)
                         .maximumSize(10000)
                         .build());
+        
+        cacheManager.registerCustomCache("forgotPasswordOtp",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .maximumSize(10000)
+                        .build());
+
+        cacheManager.registerCustomCache("forgotPasswordCooldown",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .maximumSize(10000)
+                        .build());
 
         return cacheManager;
     }
