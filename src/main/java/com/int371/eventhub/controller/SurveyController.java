@@ -101,4 +101,20 @@ public class SurveyController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/answers")
+    public ResponseEntity<ApiResponse<String>> submitSurveyAnswers(
+            @PathVariable Integer eventId,
+            @RequestBody com.int371.eventhub.dto.SurveySubmissionRequestDto request,
+            Principal principal) {
+
+        surveyService.submitSurveyAnswers(eventId, request, principal.getName());
+
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Survey answers submitted successfully",
+                null
+        );
+        return ResponseEntity.ok(response);
+    }
 }

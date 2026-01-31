@@ -11,6 +11,6 @@ public class CreateSurveyRequestDto {
     private String name;
     private String description;
     private Integer points;
-    private SurveyType type; // PRE_VISITOR, POST_EXHIBITOR, etc.
+    private SurveyType surveyType;
     private List<CreateQuestionRequestDto> questions;
 }

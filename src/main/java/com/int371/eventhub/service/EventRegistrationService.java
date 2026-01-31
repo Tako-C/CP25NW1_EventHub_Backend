@@ -9,7 +9,6 @@ import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
@@ -17,7 +16,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.int371.eventhub.dto.CheckInPreviewResponseDto;
 import com.int371.eventhub.dto.CheckInRequestDto;
 import com.int371.eventhub.dto.CheckInResponseDto;
@@ -34,7 +32,6 @@ import com.int371.eventhub.dto.SearchUserCheckInResponseDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.MemberEvent;
-import com.int371.eventhub.entity.MemberEventId;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.User;
@@ -71,14 +68,8 @@ public class EventRegistrationService {
     @Autowired 
     private QrCodeService qrCodeService;
 
-    @Autowired 
-    private ObjectMapper objectMapper;
-
     @Autowired
     private EncryptionUtil encryptionUtil;
-
-    @Autowired 
-    private ModelMapper modelMapper;
 
     @Value("${app.qr-code.storage-path}")
     private String qrStoragePath;
@@ -257,9 +248,8 @@ public class EventRegistrationService {
             Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
             Integer eventId = Integer.parseInt(eventIdPart.replace("EID", ""));
 
-            MemberEventId id = new MemberEventId(userId, eventId);
-            MemberEvent memberEvent = memberEventRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
+            MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
 
             Event event = memberEvent.getEvent();
             if (event.getEndDate() != null && LocalDateTime.now().isAfter(event.getEndDate())) {
@@ -294,9 +284,8 @@ public class EventRegistrationService {
     @Transactional
     public String manualCheckInUser(ManualCheckInRequestDto request){
         try {
-            MemberEventId id = new MemberEventId(request.getUserId(), request.getEventId());
-            MemberEvent memberEvent = memberEventRepository.findById(id)
-                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
+            MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(request.getUserId(), request.getEventId())
+            .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
 
             Event event = memberEvent.getEvent();
             if (event.getEndDate() != null && LocalDateTime.now().isAfter(event.getEndDate())) {
@@ -312,7 +301,6 @@ public class EventRegistrationService {
 
             return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
         } catch (Exception e) {
-            // TODO: handle exception
             throw new IllegalArgumentException("Manual check-in failed: " + e.getMessage());
         }
         

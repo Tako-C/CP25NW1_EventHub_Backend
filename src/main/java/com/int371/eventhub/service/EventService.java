@@ -196,7 +196,7 @@ public class EventService {
             MemberEventId memberEventId = new MemberEventId();
             memberEventId.setUserId(organizer.getId());
             memberEventId.setEventId(savedEvent.getId());
-            memberEvent.setId(memberEventId);
+            // memberEvent.setId(memberEventId);
 
             memberEvent.setUser(organizer);
             memberEvent.setEvent(savedEvent);

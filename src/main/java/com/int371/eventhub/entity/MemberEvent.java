@@ -6,33 +6,39 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 
 @Data
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "USER_EVENTS")
+@Table(name = "USER_EVENTS", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"USER_ID", "EVENT_ID"})
+})
 public class MemberEvent {
 
-    @EmbeddedId
-    private MemberEventId id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
+    private Integer id;
 
     @ManyToOne
-    @MapsId("userId")
+    // @MapsId("userId")
     @JoinColumn(name = "USER_ID")
     private User user;
 
     @ManyToOne
-    @MapsId("eventId")
+    // @MapsId("eventId")
     @JoinColumn(name = "EVENT_ID")
     private Event event;
 
@@ -60,7 +66,6 @@ public class MemberEvent {
     public MemberEvent(User user, Event event, MemberEventRole eventRole) {
         this.user = user;
         this.event = event;
-        this.id = new MemberEventId(user.getId(), event.getId());
         this.status = MemberEventStatus.REGISTRATION;
         this.eventRole = eventRole;
     }
