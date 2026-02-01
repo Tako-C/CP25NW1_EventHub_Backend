@@ -11,6 +11,6 @@ public class UpdateSurveyRequestDto {
     private String name;
     private String description;
     private Integer points;
-    private SurveyType type;
+    private SurveyType surveyType;
     private List<UpdateQuestionDto> questions;
 }
