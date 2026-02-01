@@ -198,7 +198,7 @@ public class SurveyService {
         survey.setName(request.getName());
         survey.setDescription(request.getDescription());
         survey.setPoints(request.getPoints());
-        survey.setType(request.getType());
+        survey.setType(request.getSurveyType());
 
         Survey savedSurvey = surveyRepository.save(survey);
 
