@@ -21,51 +21,55 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
-    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+        private final JwtAuthFilter jwtAuthFilter;
+        private final AuthenticationProvider authenticationProvider;
+        private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> {}) // <<< ต้องมีตรงนี้
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/events/*/register/otp/request").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/events/*/register/otp/verify").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/events/**","/event/**", "/api/events/**").permitAll()
-                        // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
-                        .requestMatchers("/upload/qr/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
-                        .requestMatchers("/users/**").authenticated()
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .cors(cors -> {
+                                }) // <<< ต้องมีตรงนี้
+                                .exceptionHandling(exception -> exception
+                                                .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                .requestMatchers(HttpMethod.OPTIONS, "/auth/**").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/events/*/register/otp/request")
+                                                .permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/events/*/register/otp/verify")
+                                                .permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**",
+                                                                "/api/events/**")
+                                                .permitAll()
+                                                // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
+                                                .requestMatchers("/upload/qr/**").authenticated()
+                                                .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
+                                                .requestMatchers("/users/**").authenticated()
+                                                .anyRequest().authenticated())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authenticationProvider(authenticationProvider)
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
+        @Bean
         public CorsFilter corsFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("*"); // รองรับ http + https
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
-        config.setAllowCredentials(true);
+                CorsConfiguration config = new CorsConfiguration();
+                config.addAllowedOriginPattern("*"); // รองรับ http + https
+                config.addAllowedHeader("*");
+                config.addAllowedMethod("*");
+                config.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
 
-        return new CorsFilter(source);
+                return new CorsFilter(source);
         }
 
 }

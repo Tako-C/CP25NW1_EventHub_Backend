@@ -57,7 +57,8 @@ public class EmailService {
     }
 
     @Async
-    public void sendWelcomeEmail(String to, String firstName, String password) throws MessagingException, UnsupportedEncodingException {
+    public void sendWelcomeEmail(String to, String firstName, String password)
+            throws MessagingException, UnsupportedEncodingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -130,5 +131,58 @@ public class EmailService {
                 + "</div>"
                 + "</body>"
                 + "</html>";
+    }
+
+    @Async
+    public void sendPostSurveyEmail(String to, String userName, String eventName, String surveyLink)
+            throws MessagingException, UnsupportedEncodingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        String htmlContent = buildPostSurveyEmailContent(userName, eventName, surveyLink);
+
+        helper.setFrom("noreply@eventhub.com", "EventHub Team");
+        helper.setTo(to);
+        helper.setSubject("How was " + eventName + "? Share your thoughts!");
+        helper.setText(htmlContent, true);
+
+        mailSender.send(message);
+    }
+
+    private String buildPostSurveyEmailContent(String userName, String eventName, String surveyLink) {
+        return "<!DOCTYPE html>"
+                + "<html>"
+                + "<head>"
+                + "<style>"
+                + "body {font-family: Arial, sans-serif; color: #333; background-color: #f6f9fc;}"
+                + ".container {background-color: #ffffff; border-radius: 8px; padding: 40px; max-width: 600px; margin: 40px auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}"
+                + ".header {font-size: 24px; color: #1a1a1a; margin-bottom: 20px; font-weight: bold; text-align: center;}"
+                + ".content {font-size: 16px; line-height: 1.6; color: #4a5568; margin-bottom: 30px;}"
+                + ".btn-container {text-align: center; margin: 30px 0;}"
+                + ".btn {background-color: #4f46e5; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;}"
+                + ".footer {font-size: 12px; color: #a0aec0; margin-top: 40px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;}"
+                + "</style>"
+                + "</head>"
+                + "<body>"
+                + "<div class='container'>"
+                + "<div class='header'>We realized the event \"" + eventName + "\" has ended!</div>"
+                + "<div class='content'>"
+                + "<p>Hi " + userName + ",</p>"
+                + "<p>We hope you had a great time at <strong>" + eventName + "</strong>.</p>"
+                + "<p>We would love to hear your feedback to help us make future events even better. Please create a moment to fill out our quick survey.</p>"
+                + "</div>"
+                + "<div class='btn-container'>"
+                + "<a href='" + surveyLink + "' class='btn' style='color: #ffffff !important;'>Take the Survey</a>"
+                + "</div>"
+                + "<div class='content'>"
+                + "<p>If the button doesn't work, you can copy and paste this link into your browser:</p>"
+                + "<p style='word-break: break-all; color: #4f46e5;'>" + surveyLink + "</p>"
+                + "</div>"
+                + "<div class='footer'>"
+                + "&copy; 2026 EventHub. All rights reserved.<br>"
+                + "This email was sent automatically. Please do not reply."
+                + "</div>"
+                + "</div>"
+                + "</body>";
     }
 }

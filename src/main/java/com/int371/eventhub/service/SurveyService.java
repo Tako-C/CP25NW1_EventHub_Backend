@@ -18,6 +18,7 @@ import com.int371.eventhub.dto.QuestionResponseDto;
 import com.int371.eventhub.dto.SurveyAnswerRequestDto;
 import com.int371.eventhub.dto.SurveyGroupResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
 import com.int371.eventhub.dto.SurveySubmissionRequestDto;
 import com.int371.eventhub.dto.UpdateQuestionDto;
 import com.int371.eventhub.dto.UpdateSurveyRequestDto;
@@ -38,7 +39,6 @@ import com.int371.eventhub.repository.QuestionRepository;
 import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.repository.SurveyRepository;
 import com.int371.eventhub.repository.UserRepository;
-
 
 @Service
 public class SurveyService {
@@ -79,16 +79,16 @@ public class SurveyService {
         return getSurveysByTypes(eventId, SurveyType.POST_VISITOR, SurveyType.POST_EXHIBITOR);
     }
 
-    private SurveyGroupResponseDto getSurveysByTypes(Integer eventId, SurveyType visitorType, SurveyType exhibitorType) {
+    private SurveyGroupResponseDto getSurveysByTypes(Integer eventId, SurveyType visitorType,
+            SurveyType exhibitorType) {
         if (!eventRepository.existsById(eventId)) {
             throw new ResourceNotFoundException("Event not found with id: " + eventId);
         }
 
         List<Survey> surveys = surveyRepository.findByEventIdAndStatusAndTypeIn(
-            eventId, 
-            SurveyStatus.ACTIVE, 
-            List.of(visitorType, exhibitorType)
-        );
+                eventId,
+                SurveyStatus.ACTIVE,
+                List.of(visitorType, exhibitorType));
 
         if (surveys.isEmpty()) {
             throw new ResourceNotFoundException("No active surveys found for event id: " + eventId);
@@ -101,18 +101,19 @@ public class SurveyService {
             SurveyResponseDto surveyDto = modelMapper.map(survey, SurveyResponseDto.class);
 
             List<Question> questions = questionRepository.findBySurveyId(survey.getId());
-            
+
             List<QuestionResponseDto> questionDtos = new ArrayList<>();
             for (Question q : questions) {
                 QuestionResponseDto qDto = modelMapper.map(q, QuestionResponseDto.class);
-                qDto.setChoicesFromAnswers(q.getAnswer1(), q.getAnswer2(), q.getAnswer3(), q.getAnswer4(), q.getAnswer5());
+                qDto.setChoicesFromAnswers(q.getAnswer1(), q.getAnswer2(), q.getAnswer3(), q.getAnswer4(),
+                        q.getAnswer5());
                 questionDtos.add(qDto);
             }
 
             surveyDto.setQuestions(questionDtos);
             surveyDto.setCreatedAt(survey.getCreatedAt());
             surveyDto.setUpdatedAt(survey.getUpdatedAt());
-            
+
             if (survey.getType() == visitorType) {
                 visitorSurvey = surveyDto;
             } else if (survey.getType() == exhibitorType) {
@@ -121,6 +122,27 @@ public class SurveyService {
         }
 
         return new SurveyGroupResponseDto(visitorSurvey, exhibitorSurvey);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SurveyResponseSubmissionStatusDto> getSurveySubmissionStatus(
+            Integer eventId,
+            Integer surveyId,
+            String userEmail) {
+
+        // 403
+        checkOrganizerPermission(eventId, userEmail);
+
+        // 404
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id " + surveyId));
+
+        // 400
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey id " + surveyId + " does not belong to event id " + eventId);
+        }
+
+        return memberEventRepository.findSurveySubmissionStatus(eventId, surveyId);
     }
 
     @Transactional
@@ -132,7 +154,8 @@ public class SurveyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
 
         if (surveyRepository.existsByEventIdAndType(eventId, request.getSurveyType())) {
-            throw new IllegalArgumentException("Survey of type " + request.getSurveyType() + " already exists for this event.");
+            throw new IllegalArgumentException(
+                    "Survey of type " + request.getSurveyType() + " already exists for this event.");
         }
 
         validateQuestionCount(request.getSurveyType(), request.getQuestions().size());
@@ -146,7 +169,6 @@ public class SurveyService {
             throw new AccessDeniedException("Only event organizer can create surveys");
         }
 
-
         Survey survey = new Survey();
         survey.setName(request.getName());
         survey.setDescription(request.getDescription());
@@ -154,12 +176,12 @@ public class SurveyService {
         survey.setType(request.getSurveyType());
         survey.setStatus(SurveyStatus.ACTIVE); // Default Active
         survey.setEvent(event);
-        
+
         Survey savedSurvey = surveyRepository.save(survey);
 
         if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
             List<Question> questionsToSave = new ArrayList<>();
-            
+
             for (CreateQuestionRequestDto qDto : request.getQuestions()) {
                 Question q = new Question();
                 q.setSurvey(savedSurvey);
@@ -169,11 +191,16 @@ public class SurveyService {
                 // Map choices (List -> Columns)
                 List<String> choices = qDto.getChoices();
                 if (choices != null) {
-                    if (!choices.isEmpty()) q.setAnswer1(choices.get(0));
-                    if (choices.size() > 1) q.setAnswer2(choices.get(1));
-                    if (choices.size() > 2) q.setAnswer3(choices.get(2));
-                    if (choices.size() > 3) q.setAnswer4(choices.get(3));
-                    if (choices.size() > 4) q.setAnswer5(choices.get(4));
+                    if (!choices.isEmpty())
+                        q.setAnswer1(choices.get(0));
+                    if (choices.size() > 1)
+                        q.setAnswer2(choices.get(1));
+                    if (choices.size() > 2)
+                        q.setAnswer3(choices.get(2));
+                    if (choices.size() > 3)
+                        q.setAnswer4(choices.get(3));
+                    if (choices.size() > 4)
+                        q.setAnswer5(choices.get(4));
                 }
                 questionsToSave.add(q);
             }
@@ -185,7 +212,8 @@ public class SurveyService {
     }
 
     @Transactional
-    public SurveyResponseDto updateSurvey(Integer eventId, Integer surveyId, UpdateSurveyRequestDto request, String userEmail) {
+    public SurveyResponseDto updateSurvey(Integer eventId, Integer surveyId, UpdateSurveyRequestDto request,
+            String userEmail) {
         checkOrganizerPermission(eventId, userEmail);
 
         Survey survey = surveyRepository.findById(surveyId)
@@ -223,7 +251,7 @@ public class SurveyService {
 
                 question.setQuestion(qDto.getQuestion());
                 question.setQuestionType(qDto.getQuestionType());
-                
+
                 mapChoicesToQuestion(question, qDto.getChoices());
 
                 questionsToSave.add(question);
@@ -284,27 +312,48 @@ public class SurveyService {
 
         Integer firstQId = request.getAnswers().get(0).getQuestionId();
         Question firstQ = questionRepository.findById(firstQId)
-                 .orElseThrow(() -> new ResourceNotFoundException("Question not found id: " + firstQId));
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found id: " + firstQId));
         Survey survey = firstQ.getSurvey();
 
         if (!survey.getEvent().getId().equals(eventId)) {
             throw new IllegalArgumentException("Survey does not belong to event id " + eventId);
         }
-        
+
         if (responseAnswerRepository.existsByMemberEventAndQuestion_Survey(memberEvent, survey)) {
             throw new IllegalArgumentException("You have already submitted answers for this survey.");
         }
 
+        // --- NEW VALIDATION: Survey Active & Role Match ---
+        if (survey.getStatus() != SurveyStatus.ACTIVE) {
+            throw new IllegalArgumentException("Survey is not active.");
+        }
+
+        // Validate Role (Visitor -> Visitor Survey, Exhibitor -> Exhibitor Survey)
+        // Check only if it's PRE/POST survey which having specific target
+        MemberEventRole userRole = memberEvent.getEventRole();
+        SurveyType surveyType = survey.getType();
+
+        if (surveyType == SurveyType.PRE_VISITOR || surveyType == SurveyType.POST_VISITOR) {
+            if (userRole != MemberEventRole.VISITOR) {
+                throw new IllegalArgumentException("This survey is for visitors only.");
+            }
+        } else if (surveyType == SurveyType.PRE_EXHIBITOR || surveyType == SurveyType.POST_EXHIBITOR) {
+            if (userRole != MemberEventRole.EXHIBITOR) {
+                throw new IllegalArgumentException("This survey is for exhibitors only.");
+            }
+        }
+        // --------------------------------------------------
+
         List<Question> allQuestions = questionRepository.findBySurveyId(survey.getId());
-        
+
         Map<Integer, SurveyAnswerRequestDto> submittedAnswersMap = request.getAnswers().stream()
                 .collect(Collectors.toMap(
-                    SurveyAnswerRequestDto::getQuestionId, 
-                    dto -> dto,
-                    (existing, replacement) -> { 
-                        throw new IllegalArgumentException("Duplicate answers for question ID " + existing.getQuestionId() + " in request."); 
-                    }
-                ));
+                        SurveyAnswerRequestDto::getQuestionId,
+                        dto -> dto,
+                        (existing, replacement) -> {
+                            throw new IllegalArgumentException(
+                                    "Duplicate answers for question ID " + existing.getQuestionId() + " in request.");
+                        }));
 
         List<ResponseAnswer> answersToSave = new ArrayList<>();
 
@@ -327,7 +376,8 @@ public class SurveyService {
             // --- Validation Rule: Single Choice limit ---
             if (ansDto != null && question.getQuestionType() == QuestionType.SINGLE) {
                 if (ansDto.getAnswers().size() > 1) {
-                    throw new IllegalArgumentException("Question '" + question.getQuestion() + "' accepts only one answer.");
+                    throw new IllegalArgumentException(
+                            "Question '" + question.getQuestion() + "' accepts only one answer.");
                 }
             }
 
@@ -349,7 +399,8 @@ public class SurveyService {
         for (Integer submittedQId : submittedAnswersMap.keySet()) {
             boolean belongsToSurvey = allQuestions.stream().anyMatch(q -> q.getId().equals(submittedQId));
             if (!belongsToSurvey) {
-                throw new IllegalArgumentException("Question ID " + submittedQId + " does not belong to the current survey.");
+                throw new IllegalArgumentException(
+                        "Question ID " + submittedQId + " does not belong to the current survey.");
             }
         }
 
@@ -358,23 +409,34 @@ public class SurveyService {
 
     // Helper Method
     private void mapChoicesToQuestion(Question q, List<String> choices) {
-        q.setAnswer1(null); q.setAnswer2(null); q.setAnswer3(null); q.setAnswer4(null); q.setAnswer5(null);
+        q.setAnswer1(null);
+        q.setAnswer2(null);
+        q.setAnswer3(null);
+        q.setAnswer4(null);
+        q.setAnswer5(null);
 
         if (choices != null) {
-            if (!choices.isEmpty()) q.setAnswer1(choices.get(0));
-            if (choices.size() > 1) q.setAnswer2(choices.get(1));
-            if (choices.size() > 2) q.setAnswer3(choices.get(2));
-            if (choices.size() > 3) q.setAnswer4(choices.get(3));
-            if (choices.size() > 4) q.setAnswer5(choices.get(4));
+            if (!choices.isEmpty())
+                q.setAnswer1(choices.get(0));
+            if (choices.size() > 1)
+                q.setAnswer2(choices.get(1));
+            if (choices.size() > 2)
+                q.setAnswer3(choices.get(2));
+            if (choices.size() > 3)
+                q.setAnswer4(choices.get(3));
+            if (choices.size() > 4)
+                q.setAnswer5(choices.get(4));
         }
     }
 
     private void validateQuestionCount(SurveyType type, int count) {
         if (type.name().startsWith("PRE") && count > MAX_PRE_SURVEY_QUESTIONS) {
-            throw new IllegalArgumentException("Pre-survey cannot have more than " + MAX_PRE_SURVEY_QUESTIONS + " questions.");
+            throw new IllegalArgumentException(
+                    "Pre-survey cannot have more than " + MAX_PRE_SURVEY_QUESTIONS + " questions.");
         }
         if (type.name().startsWith("POST") && count > MAX_POST_SURVEY_QUESTIONS) {
-            throw new IllegalArgumentException("Post-survey cannot have more than " + MAX_POST_SURVEY_QUESTIONS + " questions.");
+            throw new IllegalArgumentException(
+                    "Post-survey cannot have more than " + MAX_POST_SURVEY_QUESTIONS + " questions.");
         }
     }
 
@@ -384,14 +446,16 @@ public class SurveyService {
             if (q.getQuestionType() == QuestionType.SINGLE || q.getQuestionType() == QuestionType.MULTIPLE) {
                 // สมมติว่า choices ส่งมาเป็น List<String> หรือ String ที่คั่นด้วย comma
                 // หากใน DTO เป็น List<String> choices:
-                if (q.getChoices() == null || q.getChoices().size() < MIN_CHOICES || q.getChoices().size() > MAX_CHOICES) {
-                    throw new IllegalArgumentException("Question '" + q.getQuestion() + "' must have between 3 to 5 choices.");
+                if (q.getChoices() == null || q.getChoices().size() < MIN_CHOICES
+                        || q.getChoices().size() > MAX_CHOICES) {
+                    throw new IllegalArgumentException(
+                            "Question '" + q.getQuestion() + "' must have between 3 to 5 choices.");
                 }
-                
+
                 // Validate: ห้ามมี Choice ซ้ำกันในข้อเดียว
                 Set<String> uniqueChoices = Set.copyOf(q.getChoices());
                 if (uniqueChoices.size() != q.getChoices().size()) {
-                     throw new IllegalArgumentException("Question '" + q.getQuestion() + "' has duplicate choices.");
+                    throw new IllegalArgumentException("Question '" + q.getQuestion() + "' has duplicate choices.");
                 }
             }
         }

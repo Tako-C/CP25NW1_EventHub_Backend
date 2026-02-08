@@ -6,18 +6,20 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @EnableJpaAuditing
 @EnableAsync
+@EnableScheduling
 @SpringBootApplication
 public class EventhubApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(EventhubApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(EventhubApplication.class, args);
+    }
 
-	// BrcyptPassword delete before production
+    // BrcyptPassword delete before production
     @Bean
     public CommandLineRunner commandLineRunner(PasswordEncoder passwordEncoder) {
         return args -> {

@@ -1,6 +1,7 @@
 package com.int371.eventhub.controller;
 
 import java.security.Principal;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.CreateSurveyRequestDto;
 import com.int371.eventhub.dto.SurveyGroupResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
 import com.int371.eventhub.dto.UpdateSurveyRequestDto;
 import com.int371.eventhub.service.SurveyService;
 
@@ -25,96 +27,102 @@ import com.int371.eventhub.service.SurveyService;
 @RequestMapping("/events/{eventId}/surveys")
 public class SurveyController {
 
-    @Autowired
-    private SurveyService surveyService;
+        @Autowired
+        private SurveyService surveyService;
 
-    @GetMapping("/pre")
-    public ResponseEntity<ApiResponse<SurveyGroupResponseDto>> getPreSurveys(@PathVariable Integer eventId) {
-        SurveyGroupResponseDto data = surveyService.getPreSurveys(eventId);
-        
-        ApiResponse<SurveyGroupResponseDto> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "Pre-surveys fetched successfully",
-                data
-        );
-        return ResponseEntity.ok(response);
-    }
+        @GetMapping("/pre")
+        public ResponseEntity<ApiResponse<SurveyGroupResponseDto>> getPreSurveys(@PathVariable Integer eventId) {
+                SurveyGroupResponseDto data = surveyService.getPreSurveys(eventId);
 
-    @GetMapping("/post")
-    public ResponseEntity<ApiResponse<SurveyGroupResponseDto>> getPostSurveys(@PathVariable Integer eventId) {
-        SurveyGroupResponseDto data = surveyService.getPostSurveys(eventId);
-        
-        ApiResponse<SurveyGroupResponseDto> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "Post-surveys fetched successfully",
-                data
-        );
-        return ResponseEntity.ok(response);
-    }
+                ApiResponse<SurveyGroupResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Pre-surveys fetched successfully",
+                                data);
+                return ResponseEntity.ok(response);
+        }
 
-    @PostMapping("") // POST /events/{eventId}/surveys
-    public ResponseEntity<ApiResponse<SurveyResponseDto>> createSurvey(
-            @PathVariable Integer eventId,
-            @RequestBody CreateSurveyRequestDto request,
-            Principal principal) { // Principal จะเก็บ User ที่ Login อยู่ (จาก JWT)
+        @GetMapping("/post")
+        public ResponseEntity<ApiResponse<SurveyGroupResponseDto>> getPostSurveys(@PathVariable Integer eventId) {
+                SurveyGroupResponseDto data = surveyService.getPostSurveys(eventId);
 
-        // principal.getName() จะได้ email ของ user
-        SurveyResponseDto createdSurvey = surveyService.createSurvey(eventId, request, principal.getName());
+                ApiResponse<SurveyGroupResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Post-surveys fetched successfully",
+                                data);
+                return ResponseEntity.ok(response);
+        }
 
-        ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
-                HttpStatus.CREATED.value(),
-                "Survey created successfully",
-                createdSurvey
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+        @GetMapping("/{surveyId}/submission-status")
+        public ResponseEntity<List<SurveyResponseSubmissionStatusDto>> getSurveySubmissionStatus(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId,
+                        Principal principal) {
 
-    @PutMapping("/{surveyId}")
-    public ResponseEntity<ApiResponse<SurveyResponseDto>> updateSurvey(
-            @PathVariable Integer eventId,
-            @PathVariable Integer surveyId,
-            @RequestBody UpdateSurveyRequestDto request,
-            Principal principal) {
-        
-        SurveyResponseDto updatedSurvey = surveyService.updateSurvey(eventId, surveyId, request, principal.getName());
+                return ResponseEntity.ok(
+                                surveyService.getSurveySubmissionStatus(
+                                                eventId, surveyId, principal.getName()));
+        }
 
-        ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "Survey updated successfully",
-                updatedSurvey
-        );
-        return ResponseEntity.ok(response);
-    }
+        @PostMapping("") // POST /events/{eventId}/surveys
+        public ResponseEntity<ApiResponse<SurveyResponseDto>> createSurvey(
+                        @PathVariable Integer eventId,
+                        @RequestBody CreateSurveyRequestDto request,
+                        Principal principal) { // Principal จะเก็บ User ที่ Login อยู่ (จาก JWT)
 
-    @DeleteMapping("/{surveyId}")
-    public ResponseEntity<ApiResponse<String>> deleteSurvey(
-            @PathVariable Integer eventId,
-            @PathVariable Integer surveyId,
-            Principal principal) {
-            
-        surveyService.deleteSurvey(eventId, surveyId, principal.getName());
+                // principal.getName() จะได้ email ของ user
+                SurveyResponseDto createdSurvey = surveyService.createSurvey(eventId, request, principal.getName());
 
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "Survey deleted successfully",
-                null
-        );
-        return ResponseEntity.ok(response);
-    }
+                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                                HttpStatus.CREATED.value(),
+                                "Survey created successfully",
+                                createdSurvey);
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
 
-    @PostMapping("/answers")
-    public ResponseEntity<ApiResponse<String>> submitSurveyAnswers(
-            @PathVariable Integer eventId,
-            @RequestBody com.int371.eventhub.dto.SurveySubmissionRequestDto request,
-            Principal principal) {
+        @PutMapping("/{surveyId}")
+        public ResponseEntity<ApiResponse<SurveyResponseDto>> updateSurvey(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId,
+                        @RequestBody UpdateSurveyRequestDto request,
+                        Principal principal) {
 
-        surveyService.submitSurveyAnswers(eventId, request, principal.getName());
+                SurveyResponseDto updatedSurvey = surveyService.updateSurvey(eventId, surveyId, request,
+                                principal.getName());
 
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "Survey answers submitted successfully",
-                null
-        );
-        return ResponseEntity.ok(response);
-    }
+                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Survey updated successfully",
+                                updatedSurvey);
+                return ResponseEntity.ok(response);
+        }
+
+        @DeleteMapping("/{surveyId}")
+        public ResponseEntity<ApiResponse<String>> deleteSurvey(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId,
+                        Principal principal) {
+
+                surveyService.deleteSurvey(eventId, surveyId, principal.getName());
+
+                ApiResponse<String> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Survey deleted successfully",
+                                null);
+                return ResponseEntity.ok(response);
+        }
+
+        @PostMapping("/answers")
+        public ResponseEntity<ApiResponse<String>> submitSurveyAnswers(
+                        @PathVariable Integer eventId,
+                        @RequestBody com.int371.eventhub.dto.SurveySubmissionRequestDto request,
+                        Principal principal) {
+
+                surveyService.submitSurveyAnswers(eventId, request, principal.getName());
+
+                ApiResponse<String> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Survey answers submitted successfully",
+                                null);
+                return ResponseEntity.ok(response);
+        }
 }

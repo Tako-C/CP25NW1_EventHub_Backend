@@ -8,9 +8,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventStatus;
 
-
 public interface EventRepository extends JpaRepository<Event, Integer> {
     List<Event> findByCreatedBy(Integer userId);
+
     List<Event> findAllByStatusNot(EventStatus status);
+
     Optional<Event> findByIdAndStatusNot(Integer id, EventStatus status);
+
+    List<Event> findAllByEndDateBeforeAndStatusIn(java.time.LocalDateTime endDate, List<EventStatus> statuses);
+
+    List<Event> findAllByStartDateBeforeAndStatus(java.time.LocalDateTime startDate, EventStatus status);
 }
