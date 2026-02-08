@@ -28,6 +28,7 @@ import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.Question;
 import com.int371.eventhub.entity.QuestionType;
 import com.int371.eventhub.entity.ResponseAnswer;
+import com.int371.eventhub.entity.SubmissionSurveyStatus;
 import com.int371.eventhub.entity.Survey;
 import com.int371.eventhub.entity.SurveyStatus;
 import com.int371.eventhub.entity.SurveyType;
@@ -226,7 +227,7 @@ public class SurveyService {
         survey.setName(request.getName());
         survey.setDescription(request.getDescription());
         survey.setPoints(request.getPoints());
-        survey.setType(request.getType());
+        survey.setType(request.getSurveyType());
 
         Survey savedSurvey = surveyRepository.save(survey);
 
