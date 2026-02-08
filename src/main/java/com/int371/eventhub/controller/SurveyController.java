@@ -1,6 +1,7 @@
 package com.int371.eventhub.controller;
 
 import java.security.Principal;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.CreateSurveyRequestDto;
 import com.int371.eventhub.dto.SurveyGroupResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
 import com.int371.eventhub.dto.UpdateSurveyRequestDto;
 import com.int371.eventhub.service.SurveyService;
 
@@ -51,6 +53,22 @@ public class SurveyController {
         );
         return ResponseEntity.ok(response);
     }
+
+  @GetMapping("/{surveyId}/submission-status")
+        public ResponseEntity<List<SurveyResponseSubmissionStatusDto>> getSurveySubmissionStatus(
+                @PathVariable Integer eventId,
+                @PathVariable Integer surveyId,
+                Principal principal) {
+
+        return ResponseEntity.ok(
+                surveyService.getSurveySubmissionStatus(
+                        eventId, surveyId, principal.getName()
+                )
+        );
+        }
+
+
+
 
     @PostMapping("") // POST /events/{eventId}/surveys
     public ResponseEntity<ApiResponse<SurveyResponseDto>> createSurvey(

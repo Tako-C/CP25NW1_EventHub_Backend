@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
@@ -21,4 +23,36 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
     // List<MemberEvent> findByEventIdAndRole(Integer eventId, MemberEventRole role);
     Optional<MemberEvent> findByEventAndUser(Event event, User user);
     Optional<MemberEvent> findByUserIdAndEventId(Integer userId, Integer eventId);
+
+    List<MemberEvent> findByEventId(Integer eventId);
+        @Query("""
+        SELECT new com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto(
+            me.id,
+            u.firstName,
+            u.lastName,
+            e.eventName,
+            s.type,
+            CASE
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM ResponseAnswer ra
+                    WHERE ra.memberEvent = me
+                    AND ra.question.survey.id = :surveyId
+                )
+                THEN true
+                ELSE false
+            END
+        )
+        FROM MemberEvent me
+        JOIN me.user u
+        JOIN me.event e
+        JOIN Survey s ON s.id = :surveyId
+        WHERE e.id = :eventId
+    """)
+    List<SurveyResponseSubmissionStatusDto> findSurveySubmissionStatus(
+            Integer eventId,
+            Integer surveyId
+    );
+
+
 }
