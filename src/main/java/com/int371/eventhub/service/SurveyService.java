@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.coyote.BadRequestException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,6 +19,7 @@ import com.int371.eventhub.dto.QuestionResponseDto;
 import com.int371.eventhub.dto.SurveyAnswerRequestDto;
 import com.int371.eventhub.dto.SurveyGroupResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
 import com.int371.eventhub.dto.SurveySubmissionRequestDto;
 import com.int371.eventhub.dto.UpdateQuestionDto;
 import com.int371.eventhub.dto.UpdateSurveyRequestDto;
@@ -27,6 +29,7 @@ import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.Question;
 import com.int371.eventhub.entity.QuestionType;
 import com.int371.eventhub.entity.ResponseAnswer;
+import com.int371.eventhub.entity.SubmissionSurveyStatus;
 import com.int371.eventhub.entity.Survey;
 import com.int371.eventhub.entity.SurveyStatus;
 import com.int371.eventhub.entity.SurveyType;
@@ -122,6 +125,29 @@ public class SurveyService {
 
         return new SurveyGroupResponseDto(visitorSurvey, exhibitorSurvey);
     }
+
+    @Transactional(readOnly = true)
+    public List<SurveyResponseSubmissionStatusDto> getSurveySubmissionStatus(
+            Integer eventId,
+            Integer surveyId,
+            String userEmail) {
+
+        // 403
+        checkOrganizerPermission(eventId, userEmail);
+
+        // 404
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() ->
+                    new ResourceNotFoundException("Survey not found with id " + surveyId));
+
+        // 400
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey id " + surveyId + " does not belong to event id " + eventId);
+        }
+
+        return memberEventRepository.findSurveySubmissionStatus(eventId, surveyId);
+    }
+
 
     @Transactional
     public SurveyResponseDto createSurvey(Integer eventId, CreateSurveyRequestDto request, String userEmail) {
