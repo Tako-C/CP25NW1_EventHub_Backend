@@ -142,24 +142,31 @@ public class SurveyService {
     }
 
     @Transactional(readOnly = true)
-    public List<SurveyResponseSubmissionStatusDto> getSurveySubmissionStatus(
+    public List<SurveyResponseSubmissionStatusDto> getVisitorSurveySubmissionStatus(
             Integer eventId,
             Integer surveyId,
             String userEmail) {
-
-        // 403
         checkOrganizerPermission(eventId, userEmail);
+        validateSurveyEvent(eventId, surveyId);
+        return memberEventRepository.findSurveySubmissionStatusByRole(eventId, surveyId, MemberEventRole.VISITOR);
+    }
 
-        // 404
+    @Transactional(readOnly = true)
+    public List<SurveyResponseSubmissionStatusDto> getExhibitorSurveySubmissionStatus(
+            Integer eventId,
+            Integer surveyId,
+            String userEmail) {
+        checkOrganizerPermission(eventId, userEmail);
+        validateSurveyEvent(eventId, surveyId);
+        return memberEventRepository.findSurveySubmissionStatusByRole(eventId, surveyId, MemberEventRole.EXHIBITOR);
+    }
+
+    private void validateSurveyEvent(Integer eventId, Integer surveyId) {
         Survey survey = surveyRepository.findById(surveyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id " + surveyId));
-
-        // 400
         if (!survey.getEvent().getId().equals(eventId)) {
             throw new IllegalArgumentException("Survey id " + surveyId + " does not belong to event id " + eventId);
         }
-
-        return memberEventRepository.findSurveySubmissionStatus(eventId, surveyId);
     }
 
     @Transactional

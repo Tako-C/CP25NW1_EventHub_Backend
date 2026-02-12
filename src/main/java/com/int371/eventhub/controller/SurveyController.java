@@ -100,14 +100,25 @@ public class SurveyController {
                 return ResponseEntity.ok(response);
         }
 
-        @GetMapping("/{surveyId}/submission-status")
-        public ResponseEntity<List<SurveyResponseSubmissionStatusDto>> getSurveySubmissionStatus(
+        @GetMapping("/{surveyId}/submission-status/visitor")
+        public ResponseEntity<List<SurveyResponseSubmissionStatusDto>> getVisitorSurveySubmissionStatus(
                         @PathVariable Integer eventId,
                         @PathVariable Integer surveyId,
                         Principal principal) {
 
                 return ResponseEntity.ok(
-                                surveyService.getSurveySubmissionStatus(
+                                surveyService.getVisitorSurveySubmissionStatus(
+                                                eventId, surveyId, principal.getName()));
+        }
+
+        @GetMapping("/{surveyId}/submission-status/exhibitor")
+        public ResponseEntity<List<SurveyResponseSubmissionStatusDto>> getExhibitorSurveySubmissionStatus(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId,
+                        Principal principal) {
+
+                return ResponseEntity.ok(
+                                surveyService.getExhibitorSurveySubmissionStatus(
                                                 eventId, surveyId, principal.getName()));
         }
 

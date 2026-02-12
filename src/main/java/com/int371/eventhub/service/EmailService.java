@@ -134,12 +134,12 @@ public class EmailService {
     }
 
     @Async
-    public void sendPostSurveyEmail(String to, String userName, String eventName, String surveyLink)
+    public void sendPostSurveyEmail(String to, String userName, String eventName, Integer eventId)
             throws MessagingException, UnsupportedEncodingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        String htmlContent = buildPostSurveyEmailContent(userName, eventName, surveyLink);
+        String htmlContent = buildPostSurveyEmailContent(userName, eventName, eventId);
 
         helper.setFrom("noreply@eventhub.com", "EventHub Team");
         helper.setTo(to);
@@ -149,7 +149,8 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    private String buildPostSurveyEmailContent(String userName, String eventName, String surveyLink) {
+    private String buildPostSurveyEmailContent(String userName, String eventName, Integer eventId) {
+        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "/survey/post";
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head>"
@@ -173,10 +174,6 @@ public class EmailService {
                 + "</div>"
                 + "<div class='btn-container'>"
                 + "<a href='" + surveyLink + "' class='btn' style='color: #ffffff !important;'>Take the Survey</a>"
-                + "</div>"
-                + "<div class='content'>"
-                + "<p>If the button doesn't work, you can copy and paste this link into your browser:</p>"
-                + "<p style='word-break: break-all; color: #4f46e5;'>" + surveyLink + "</p>"
                 + "</div>"
                 + "<div class='footer'>"
                 + "&copy; 2026 EventHub. All rights reserved.<br>"

@@ -76,38 +76,32 @@ public class EventSchedulerService {
             List<MemberEvent> members = memberEventRepository.findByEventId(event.getId());
             List<Survey> surveys = surveyRepository.findByEventIdAndStatus(event.getId(), SurveyStatus.ACTIVE);
 
-            String visitorSurveyLink = null;
-            String exhibitorSurveyLink = null;
+            // Check if surveys exist
+            boolean hasVisitorSurvey = false;
+            boolean hasExhibitorSurvey = false;
 
-            // Find links (Assuming we have only 1 active survey per type)
-            // Frontend URL:
-            // https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/events/{eventId}/surveys/{surveyId}
             for (Survey s : surveys) {
                 if (s.getType() == SurveyType.POST_VISITOR) {
-                    visitorSurveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/events/" + event.getId()
-                            + "/surveys/"
-                            + s.getId();
+                    hasVisitorSurvey = true;
                 } else if (s.getType() == SurveyType.POST_EXHIBITOR) {
-                    exhibitorSurveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/events/" + event.getId()
-                            + "/surveys/"
-                            + s.getId();
+                    hasExhibitorSurvey = true;
                 }
             }
 
             for (MemberEvent member : members) {
-                String linkToSend = null;
-                if (member.getEventRole() == MemberEventRole.VISITOR) {
-                    linkToSend = visitorSurveyLink;
-                } else if (member.getEventRole() == MemberEventRole.EXHIBITOR) {
-                    linkToSend = exhibitorSurveyLink;
+                boolean shouldSend = false;
+                if (member.getEventRole() == MemberEventRole.VISITOR && hasVisitorSurvey) {
+                    shouldSend = true;
+                } else if (member.getEventRole() == MemberEventRole.EXHIBITOR && hasExhibitorSurvey) {
+                    shouldSend = true;
                 }
 
-                if (linkToSend != null) {
+                if (shouldSend) {
                     emailService.sendPostSurveyEmail(
                             member.getUser().getEmail(),
                             member.getUser().getFirstName(),
                             event.getEventName(),
-                            linkToSend);
+                            event.getId());
                 }
             }
         } catch (Exception e) {

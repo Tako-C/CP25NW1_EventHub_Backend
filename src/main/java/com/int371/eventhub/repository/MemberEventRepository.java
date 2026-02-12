@@ -57,15 +57,17 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
                 JOIN me.event e
                 JOIN Survey s ON s.id = :surveyId
                 WHERE e.id = :eventId
+                AND me.eventRole = :role
             """)
-    List<SurveyResponseSubmissionStatusDto> findSurveySubmissionStatus(
+    List<SurveyResponseSubmissionStatusDto> findSurveySubmissionStatusByRole(
             Integer eventId,
-            Integer surveyId);
+            Integer surveyId,
+            MemberEventRole role);
 
     @Query("SELECT me FROM MemberEvent me JOIN me.user u WHERE " +
-           "me.event.id = :eventId AND me.eventRole = MemberEventRole.VISITOR AND (" +
-           "LOWER(u.email) = LOWER(:query) OR " +
-           "u.phone = :query OR " +
-           "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :query, '%')))")
+            "me.event.id = :eventId AND me.eventRole = MemberEventRole.VISITOR AND (" +
+            "LOWER(u.email) = LOWER(:query) OR " +
+            "u.phone = :query OR " +
+            "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<MemberEvent> searchVisitorsFlexibly(@Param("eventId") Integer eventId, @Param("query") String query);
 }
