@@ -28,7 +28,6 @@ import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.Question;
 import com.int371.eventhub.entity.QuestionType;
 import com.int371.eventhub.entity.ResponseAnswer;
-import com.int371.eventhub.entity.SubmissionSurveyStatus;
 import com.int371.eventhub.entity.Survey;
 import com.int371.eventhub.entity.SurveyStatus;
 import com.int371.eventhub.entity.SurveyType;
@@ -99,21 +98,7 @@ public class SurveyService {
         SurveyResponseDto exhibitorSurvey = null;
 
         for (Survey survey : surveys) {
-            SurveyResponseDto surveyDto = modelMapper.map(survey, SurveyResponseDto.class);
-
-            List<Question> questions = questionRepository.findBySurveyId(survey.getId());
-
-            List<QuestionResponseDto> questionDtos = new ArrayList<>();
-            for (Question q : questions) {
-                QuestionResponseDto qDto = modelMapper.map(q, QuestionResponseDto.class);
-                qDto.setChoicesFromAnswers(q.getAnswer1(), q.getAnswer2(), q.getAnswer3(), q.getAnswer4(),
-                        q.getAnswer5());
-                questionDtos.add(qDto);
-            }
-
-            surveyDto.setQuestions(questionDtos);
-            surveyDto.setCreatedAt(survey.getCreatedAt());
-            surveyDto.setUpdatedAt(survey.getUpdatedAt());
+            SurveyResponseDto surveyDto = mapSurveyToDto(survey);
 
             if (survey.getType() == visitorType) {
                 visitorSurvey = surveyDto;
@@ -123,6 +108,37 @@ public class SurveyService {
         }
 
         return new SurveyGroupResponseDto(visitorSurvey, exhibitorSurvey);
+    }
+
+    public SurveyResponseDto getSurveyByType(Integer eventId, SurveyType type) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
+
+        Survey survey = surveyRepository.findByEventIdAndStatusAndType(eventId, SurveyStatus.ACTIVE, type)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "No active survey found for event id: " + eventId + " and type: " + type));
+
+        return mapSurveyToDto(survey);
+    }
+
+    private SurveyResponseDto mapSurveyToDto(Survey survey) {
+        SurveyResponseDto surveyDto = modelMapper.map(survey, SurveyResponseDto.class);
+
+        List<Question> questions = questionRepository.findBySurveyId(survey.getId());
+
+        List<QuestionResponseDto> questionDtos = new ArrayList<>();
+        for (Question q : questions) {
+            QuestionResponseDto qDto = modelMapper.map(q, QuestionResponseDto.class);
+            qDto.setChoicesFromAnswers(q.getAnswer1(), q.getAnswer2(), q.getAnswer3(), q.getAnswer4(),
+                    q.getAnswer5());
+            questionDtos.add(qDto);
+        }
+
+        surveyDto.setQuestions(questionDtos);
+        surveyDto.setCreatedAt(survey.getCreatedAt());
+        surveyDto.setUpdatedAt(survey.getUpdatedAt());
+        return surveyDto;
     }
 
     @Transactional(readOnly = true)

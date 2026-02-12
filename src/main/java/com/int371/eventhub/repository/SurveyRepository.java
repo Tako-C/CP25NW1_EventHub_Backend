@@ -10,6 +10,10 @@ import com.int371.eventhub.entity.SurveyType;
 
 public interface SurveyRepository extends JpaRepository<Survey, Integer> {
     List<Survey> findByEventIdAndStatus(Integer eventId, SurveyStatus status);
+
     List<Survey> findByEventIdAndStatusAndTypeIn(Integer eventId, SurveyStatus status, List<SurveyType> types);
+
+    java.util.Optional<Survey> findByEventIdAndStatusAndType(Integer eventId, SurveyStatus status, SurveyType type);
+
     boolean existsByEventIdAndType(Integer eventId, SurveyType type);
 }
