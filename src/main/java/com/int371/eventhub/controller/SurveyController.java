@@ -42,11 +42,11 @@ public class SurveyController {
         }
 
         @GetMapping("/pre/visitor")
-        public ResponseEntity<ApiResponse<SurveyResponseDto>> getPreVisitorSurvey(@PathVariable Integer eventId) {
-                SurveyResponseDto data = surveyService.getSurveyByType(eventId,
+        public ResponseEntity<ApiResponse<List<SurveyResponseDto>>> getPreVisitorSurvey(@PathVariable Integer eventId) {
+                List<SurveyResponseDto> data = surveyService.getSurveyByType(eventId,
                                 com.int371.eventhub.entity.SurveyType.PRE_VISITOR);
 
-                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                ApiResponse<List<SurveyResponseDto>> response = new ApiResponse<>(
                                 HttpStatus.OK.value(),
                                 "Pre-survey (Visitor) fetched successfully",
                                 data);
@@ -54,11 +54,12 @@ public class SurveyController {
         }
 
         @GetMapping("/pre/exhibitor")
-        public ResponseEntity<ApiResponse<SurveyResponseDto>> getPreExhibitorSurvey(@PathVariable Integer eventId) {
-                SurveyResponseDto data = surveyService.getSurveyByType(eventId,
+        public ResponseEntity<ApiResponse<List<SurveyResponseDto>>> getPreExhibitorSurvey(
+                        @PathVariable Integer eventId) {
+                List<SurveyResponseDto> data = surveyService.getSurveyByType(eventId,
                                 com.int371.eventhub.entity.SurveyType.PRE_EXHIBITOR);
 
-                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                ApiResponse<List<SurveyResponseDto>> response = new ApiResponse<>(
                                 HttpStatus.OK.value(),
                                 "Pre-survey (Exhibitor) fetched successfully",
                                 data);
@@ -77,11 +78,12 @@ public class SurveyController {
         }
 
         @GetMapping("/post/visitor")
-        public ResponseEntity<ApiResponse<SurveyResponseDto>> getPostVisitorSurvey(@PathVariable Integer eventId) {
-                SurveyResponseDto data = surveyService.getSurveyByType(eventId,
+        public ResponseEntity<ApiResponse<List<SurveyResponseDto>>> getPostVisitorSurvey(
+                        @PathVariable Integer eventId) {
+                List<SurveyResponseDto> data = surveyService.getSurveyByType(eventId,
                                 com.int371.eventhub.entity.SurveyType.POST_VISITOR);
 
-                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                ApiResponse<List<SurveyResponseDto>> response = new ApiResponse<>(
                                 HttpStatus.OK.value(),
                                 "Post-survey (Visitor) fetched successfully",
                                 data);
@@ -89,11 +91,12 @@ public class SurveyController {
         }
 
         @GetMapping("/post/exhibitor")
-        public ResponseEntity<ApiResponse<SurveyResponseDto>> getPostExhibitorSurvey(@PathVariable Integer eventId) {
-                SurveyResponseDto data = surveyService.getSurveyByType(eventId,
+        public ResponseEntity<ApiResponse<List<SurveyResponseDto>>> getPostExhibitorSurvey(
+                        @PathVariable Integer eventId) {
+                List<SurveyResponseDto> data = surveyService.getSurveyByType(eventId,
                                 com.int371.eventhub.entity.SurveyType.POST_EXHIBITOR);
 
-                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                ApiResponse<List<SurveyResponseDto>> response = new ApiResponse<>(
                                 HttpStatus.OK.value(),
                                 "Post-survey (Exhibitor) fetched successfully",
                                 data);
@@ -167,6 +170,22 @@ public class SurveyController {
                                 HttpStatus.OK.value(),
                                 "Survey deleted successfully",
                                 null);
+                return ResponseEntity.ok(response);
+        }
+
+        @PutMapping("/{surveyId}/status")
+        public ResponseEntity<ApiResponse<SurveyResponseDto>> toggleSurveyStatus(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId,
+                        Principal principal) {
+
+                SurveyResponseDto updatedSurvey = surveyService.toggleSurveyStatus(eventId, surveyId,
+                                principal.getName());
+
+                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Survey status toggled successfully",
+                                updatedSurvey);
                 return ResponseEntity.ok(response);
         }
 

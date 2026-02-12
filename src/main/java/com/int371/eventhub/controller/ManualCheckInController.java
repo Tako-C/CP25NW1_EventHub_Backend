@@ -34,24 +34,21 @@ public class ManualCheckInController {
             ApiResponse<String> apiResponse = new ApiResponse<>(
                     HttpStatus.NOT_FOUND.value(),
                     ex.getMessage(),
-                    null
-            );
+                    null);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiResponse);
         }
     }
 
-    
-
     @PostMapping("/check-in")
-    public ResponseEntity<ApiResponse<String>> checkInUser(@Valid @RequestBody ManualCheckInRequestDto request) {
-        
-        String resultMessage = eventRegistrationService.manualCheckInUser(request);
+    public ResponseEntity<ApiResponse<String>> checkInUser(@Valid @RequestBody ManualCheckInRequestDto request,
+            java.security.Principal principal) {
+
+        String resultMessage = eventRegistrationService.manualCheckInUser(request, principal.getName());
 
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 resultMessage,
-                null
-        );
+                null);
         return ResponseEntity.ok(response);
     }
 

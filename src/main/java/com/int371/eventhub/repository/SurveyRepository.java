@@ -16,4 +16,12 @@ public interface SurveyRepository extends JpaRepository<Survey, Integer> {
     java.util.Optional<Survey> findByEventIdAndStatusAndType(Integer eventId, SurveyStatus status, SurveyType type);
 
     boolean existsByEventIdAndType(Integer eventId, SurveyType type);
+
+    boolean existsByEventIdAndTypeAndStatusNot(Integer eventId, SurveyType type, SurveyStatus status);
+
+    List<Survey> findByEventIdAndStatusNotAndTypeIn(Integer eventId, SurveyStatus status, List<SurveyType> types);
+
+    List<Survey> findByEventIdAndStatusNotAndType(Integer eventId, SurveyStatus status, SurveyType type);
+
+    boolean existsByEventIdAndTypeAndStatus(Integer eventId, SurveyType type, SurveyStatus status);
 }

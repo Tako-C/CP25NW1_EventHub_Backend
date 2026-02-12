@@ -24,9 +24,11 @@ public class EventResponseDto {
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private EventStatus status;
+    private EventStatus eventStatus;
+    private String checkInStatus;
     private EventImageResponseDto images;
     private boolean hasPreSurvey;
     private boolean hasPostSurvey;
-    
+    private boolean isPostSurveyCompleted;
+
 }

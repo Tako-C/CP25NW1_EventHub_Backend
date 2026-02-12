@@ -49,15 +49,20 @@ public class EventService {
     @Value("${app.event-image.storage-path}")
     private String uploadBaseDir;
 
-    @Autowired private EventRepository eventRepository;
+    @Autowired
+    private EventRepository eventRepository;
 
-    @Autowired private EventTypeRepository eventTypeRepository;
+    @Autowired
+    private EventTypeRepository eventTypeRepository;
 
-    @Autowired private ImageCategoryRepository categoryRepository;
+    @Autowired
+    private ImageCategoryRepository categoryRepository;
 
-    @Autowired private SurveyRepository surveyRepository;
+    @Autowired
+    private SurveyRepository surveyRepository;
 
-    @Autowired private ModelMapper modelMapper;
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Autowired
     private UserRepository userRepository;
@@ -65,6 +70,8 @@ public class EventService {
     @Autowired
     private MemberEventRepository memberEventRepository;
 
+    @Autowired
+    private com.int371.eventhub.repository.ResponseAnswerRepository responseAnswerRepository;
 
     private static final Set<String> CATEGORIES_FOR_ALL_EVENTS = Set.of("card", "slideshow");
     private static final Set<String> CATEGORIES_FOR_EVENT_BY_ID = Set.of("card", "slideshow", "detail", "map");
@@ -72,15 +79,15 @@ public class EventService {
     // ========================= GET =========================
 
     // public List<EventResponseDto> getAllEvents() {
-    //     List<Event> events = eventRepository.findAllByStatusNot(EventStatus.DELETED);
-        
-    //     if (events.isEmpty()) {
-    //         throw new ResourceNotFoundException("No active events available."); 
-    //     }
-        
-    //     return events.stream()
-    //             .map(e -> convertEventToDtoWithImageStructure(e, CATEGORIES_FOR_ALL_EVENTS))
-    //             .toList();
+    // List<Event> events = eventRepository.findAllByStatusNot(EventStatus.DELETED);
+
+    // if (events.isEmpty()) {
+    // throw new ResourceNotFoundException("No active events available.");
+    // }
+
+    // return events.stream()
+    // .map(e -> convertEventToDtoWithImageStructure(e, CATEGORIES_FOR_ALL_EVENTS))
+    // .toList();
     // }
 
     public List<EventResponseDto> getAllEvents() {
@@ -90,56 +97,74 @@ public class EventService {
         }
         return events.stream()
                 .map(event -> {
-                    EventResponseDto dto =
-                            convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_ALL_EVENTS);
+                    EventResponseDto dto = convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_ALL_EVENTS);
 
                     boolean hasActivePreSurvey = hasActiveSurveyByTypes(
                             event.getId(),
                             List.of(
                                     SurveyType.PRE_VISITOR,
-                                    SurveyType.PRE_EXHIBITOR
-                            )
-                    );
+                                    SurveyType.PRE_EXHIBITOR));
                     boolean hasActivePostSurvey = hasActiveSurveyByTypes(
                             event.getId(),
                             List.of(
                                     SurveyType.POST_VISITOR,
-                                    SurveyType.POST_EXHIBITOR
-                            )
-                    );
+                                    SurveyType.POST_EXHIBITOR));
                     dto.setHasPreSurvey(hasActivePreSurvey);
                     dto.setHasPostSurvey(hasActivePostSurvey);
+                    dto.setEventStatus(event.getStatus());
                     return dto;
                 })
                 .toList();
     }
 
-
-   public EventResponseDto getEventById(Integer id) {
+    public EventResponseDto getEventById(Integer id, String email) {
         Event event = eventRepository.findByIdAndStatusNot(id, EventStatus.DELETED)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Event not found with id: " + id)
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
         boolean hasActivePreSurvey = hasActiveSurveyByTypes(
                 id,
                 List.of(
                         SurveyType.PRE_VISITOR,
-                        SurveyType.PRE_EXHIBITOR
-                )
-        );
+                        SurveyType.PRE_EXHIBITOR));
         boolean hasActivePostSurvey = hasActiveSurveyByTypes(
                 id,
                 List.of(
                         SurveyType.POST_VISITOR,
-                        SurveyType.POST_EXHIBITOR
-                )
-        );
+                        SurveyType.POST_EXHIBITOR));
 
-        EventResponseDto result =
-                convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_EVENT_BY_ID);
+        EventResponseDto result = convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_EVENT_BY_ID);
 
         result.setHasPreSurvey(hasActivePreSurvey);
         result.setHasPostSurvey(hasActivePostSurvey);
+
+        // Check if user completed post survey
+        boolean isPostSurveyCompleted = false;
+        if (email != null) {
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user != null) {
+                MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user).orElse(null);
+                if (memberEvent != null) {
+                    result.setCheckInStatus(memberEvent.getStatus().name());
+
+                    SurveyType targetType = null;
+                    if (memberEvent.getEventRole() == MemberEventRole.VISITOR) {
+                        targetType = SurveyType.POST_VISITOR;
+                    } else if (memberEvent.getEventRole() == MemberEventRole.EXHIBITOR) {
+                        targetType = SurveyType.POST_EXHIBITOR;
+                    }
+
+                    if (targetType != null) {
+                        java.util.Optional<com.int371.eventhub.entity.Survey> surveyOpt = surveyRepository
+                                .findByEventIdAndStatusAndType(id, SurveyStatus.ACTIVE, targetType);
+                        if (surveyOpt.isPresent()) {
+                            isPostSurveyCompleted = responseAnswerRepository
+                                    .existsByMemberEventAndQuestion_Survey(memberEvent, surveyOpt.get());
+                        }
+                    }
+                }
+            }
+        }
+        result.setPostSurveyCompleted(isPostSurveyCompleted);
+        result.setEventStatus(event.getStatus());
 
         return result;
     }
@@ -160,7 +185,8 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("EventType not found"));
         event.setEventTypeId(type);
 
-        if (event.getImages() == null) event.setImages(new ArrayList<>());
+        if (event.getImages() == null)
+            event.setImages(new ArrayList<>());
 
         // 👉 save รอบแรก เพื่อให้ได้ eventId
         event = eventRepository.save(event);
@@ -180,8 +206,7 @@ public class EventService {
                 MultipartFile file = dto.getEventSlideshow().get(i);
                 if (isNotBlank(file)) {
                     event.getImages().add(
-                        processImage(file, "slideshow", eventId, event, i + 1)
-                    );
+                            processImage(file, "slideshow", eventId, event, i + 1));
                 }
             }
         }
@@ -189,24 +214,26 @@ public class EventService {
         Event savedEvent = eventRepository.save(event);
 
         User organizer = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
 
-            MemberEvent memberEvent = new MemberEvent();
+        MemberEvent memberEvent = new MemberEvent();
 
-            MemberEventId memberEventId = new MemberEventId();
-            memberEventId.setUserId(organizer.getId());
-            memberEventId.setEventId(savedEvent.getId());
-            // memberEvent.setId(memberEventId);
+        MemberEventId memberEventId = new MemberEventId();
+        memberEventId.setUserId(organizer.getId());
+        memberEventId.setEventId(savedEvent.getId());
+        // memberEvent.setId(memberEventId);
 
-            memberEvent.setUser(organizer);
-            memberEvent.setEvent(savedEvent);
+        memberEvent.setUser(organizer);
+        memberEvent.setEvent(savedEvent);
 
-            memberEvent.setEventRole(MemberEventRole.ORGANIZER);
-            memberEvent.setStatus(MemberEventStatus.REGISTRATION); 
+        memberEvent.setEventRole(MemberEventRole.ORGANIZER);
+        memberEvent.setStatus(MemberEventStatus.REGISTRATION);
 
-            memberEventRepository.save(memberEvent);
+        memberEventRepository.save(memberEvent);
 
-        return modelMapper.map(savedEvent, EventResponseDto.class);
+        EventResponseDto responseDto = modelMapper.map(savedEvent, EventResponseDto.class);
+        responseDto.setEventStatus(savedEvent.getStatus());
+        return responseDto;
     }
 
     // ========================= UPDATE =========================
@@ -216,7 +243,8 @@ public class EventService {
         for (int index = 0; index < dto.getSlideshowIndices().size(); index++) {
             Integer targetIndex = dto.getSlideshowIndices().get(index);
             if (targetIndex < 1 || targetIndex > 3) {
-                throw new IllegalArgumentException("Slideshow index must be between 1 and 3. Invalid index: " + targetIndex);
+                throw new IllegalArgumentException(
+                        "Slideshow index must be between 1 and 3. Invalid index: " + targetIndex);
             }
         }
 
@@ -242,7 +270,7 @@ public class EventService {
         event.setCreatedBy(dto.getCreatedBy());
         event.setUpdatedAt(LocalDateTime.now());
 
-         // Update Event Type if provided
+        // Update Event Type if provided
 
         if (dto.getEventTypeId() != null) {
             EventType type = eventTypeRepository.findById(dto.getEventTypeId())
@@ -267,8 +295,7 @@ public class EventService {
                 if (isNotBlank(file)) {
                     removeImageByCategoryAndIndex(event, "slideshow", index);
                     event.getImages().add(
-                        processImage(file, "slideshow", eventId, event, index)
-                    );
+                            processImage(file, "slideshow", eventId, event, index));
                 }
             }
         }
@@ -283,9 +310,9 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
         // if (event.getImages() != null) {
-        //     for (EventImage img : event.getImages()) {
-        //         deleteImageFile(img.getImgPathEv());
-        //     }
+        // for (EventImage img : event.getImages()) {
+        // deleteImageFile(img.getImgPathEv());
+        // }
         // }
         // eventRepository.delete(event);
         event.setStatus(EventStatus.DELETED);
@@ -310,8 +337,6 @@ public class EventService {
         }
     }
 
-
-
     // ========================= IMAGE CORE =========================
 
     private EventImage processImage(
@@ -319,13 +344,13 @@ public class EventService {
             String category,
             Integer eventId,
             Event event,
-            Integer index
-    ) {
+            Integer index) {
         try {
             String fileName = generateFileName(eventId, category, index, file.getOriginalFilename());
 
             Path dir = Paths.get(uploadBaseDir);
-            if (!Files.exists(dir)) Files.createDirectories(dir);
+            if (!Files.exists(dir))
+                Files.createDirectories(dir);
             Files.copy(file.getInputStream(), dir.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
 
             EventImage img = new EventImage();
@@ -371,7 +396,8 @@ public class EventService {
     private void deleteImageFile(String fileName) {
         try {
             Files.deleteIfExists(Paths.get(uploadBaseDir).resolve(fileName));
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private boolean isNotBlank(MultipartFile file) {
@@ -394,7 +420,6 @@ public class EventService {
         }
     }
 
-
     private void deleteSlideshowImage(Event event, int index) {
         String pattern = "_slideshow_" + index + ".";
         EventImage target = event.getImages().stream()
@@ -408,13 +433,11 @@ public class EventService {
         event.getImages().remove(target);
     }
 
-
-
     // ========================= DTO MAP =========================
 
     private EventResponseDto convertEventToDtoWithImageStructure(
-        Event event,
-        Set<String> allowedCategoryNames) {
+            Event event,
+            Set<String> allowedCategoryNames) {
 
         EventResponseDto dto = modelMapper.map(event, EventResponseDto.class);
 
@@ -426,28 +449,28 @@ public class EventService {
 
         // CARD
         event.getImages().stream()
-            .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("Card"))
-            .findFirst()
-            .ifPresent(img -> imageDto.setImageCard(img.getImgPathEv()));
+                .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("Card"))
+                .findFirst()
+                .ifPresent(img -> imageDto.setImageCard(img.getImgPathEv()));
 
         // DETAIL
         event.getImages().stream()
-            .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("Detail"))
-            .findFirst()
-            .ifPresent(img -> imageDto.setImageDetail(img.getImgPathEv()));
+                .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("Detail"))
+                .findFirst()
+                .ifPresent(img -> imageDto.setImageDetail(img.getImgPathEv()));
 
         // MAP
         event.getImages().stream()
-            .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("map"))
-            .findFirst()
-            .ifPresent(img -> imageDto.setImageMap(img.getImgPathEv()));
+                .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("map"))
+                .findFirst()
+                .ifPresent(img -> imageDto.setImageMap(img.getImgPathEv()));
 
         // SLIDESHOW (LIST)
         List<String> slideshow = event.getImages().stream()
-            .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("slideshow"))
-            .sorted((a, b) -> a.getImgPathEv().compareTo(b.getImgPathEv())) // เรียง 1,2,3
-            .map(EventImage::getImgPathEv)
-            .toList();
+                .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("slideshow"))
+                .sorted((a, b) -> a.getImgPathEv().compareTo(b.getImgPathEv())) // เรียง 1,2,3
+                .map(EventImage::getImgPathEv)
+                .toList();
 
         imageDto.setImageSlideShow(slideshow);
 
@@ -457,50 +480,51 @@ public class EventService {
 
     public List<EventTypeDto> getAllEventTypes() {
         List<EventType> eventTypes = eventTypeRepository.findAll();
-        
+
         return eventTypes.stream()
                 .map(type -> modelMapper.map(type, EventTypeDto.class))
                 .toList();
     }
-    
+
     public List<String> getAllEventImageTypes() {
         List<ImageCategory> categories = categoryRepository.findAll();
-        
+
         return categories.stream()
                 .map(ImageCategory::getCategoryName)
                 .toList();
     }
 
-    // private EventResponseDto convertEventToDtoWithImageStructure(Event event, Set<String> allowed) {
-    //     EventResponseDto dto = modelMapper.map(event, EventResponseDto.class);
+    // private EventResponseDto convertEventToDtoWithImageStructure(Event event,
+    // Set<String> allowed) {
+    // EventResponseDto dto = modelMapper.map(event, EventResponseDto.class);
 
-    //     if (event.getImages() != null) {
-    //         Map<String, String> map = event.getImages().stream()
-    //             .filter(i -> allowed.contains(i.getCategory().getCategoryName().toLowerCase()))
-    //             .collect(Collectors.toMap(
-    //                 i -> i.getCategory().getCategoryName().toLowerCase(),
-    //                 EventImage::getImgPathEv,
-    //                 (a, b) -> a
-    //             ));
+    // if (event.getImages() != null) {
+    // Map<String, String> map = event.getImages().stream()
+    // .filter(i ->
+    // allowed.contains(i.getCategory().getCategoryName().toLowerCase()))
+    // .collect(Collectors.toMap(
+    // i -> i.getCategory().getCategoryName().toLowerCase(),
+    // EventImage::getImgPathEv,
+    // (a, b) -> a
+    // ));
 
-    //         EventImageResponseDto img = new EventImageResponseDto();
-    //         img.setImageCard(map.get("card"));
-    //         img.setImageSlideShow(map.get("slideshow"));
-    //         img.setImageDetail(map.get("detail"));
-    //         img.setImageMap(map.get("map"));
-    //         dto.setImages(img);
-    //     }
-    //     return dto;
+    // EventImageResponseDto img = new EventImageResponseDto();
+    // img.setImageCard(map.get("card"));
+    // img.setImageSlideShow(map.get("slideshow"));
+    // img.setImageDetail(map.get("detail"));
+    // img.setImageMap(map.get("map"));
+    // dto.setImages(img);
+    // }
+    // return dto;
     // }
 
     // ========================= Status Event By Survey =========================
-        private boolean hasActiveSurveyByTypes(Integer eventId,List<SurveyType> surveyTypes) {
+    private boolean hasActiveSurveyByTypes(Integer eventId, List<SurveyType> surveyTypes) {
         return surveyRepository
                 .findByEventIdAndStatusAndTypeIn(
                         eventId,
                         SurveyStatus.ACTIVE,
-                        surveyTypes
-                )
+                        surveyTypes)
                 .isEmpty() == false;
     }
 

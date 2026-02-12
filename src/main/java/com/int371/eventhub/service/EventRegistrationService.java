@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +68,7 @@ public class EventRegistrationService {
     @Autowired
     private CacheManager cacheManager;
 
-    @Autowired 
+    @Autowired
     private QrCodeService qrCodeService;
 
     @Autowired
@@ -86,17 +87,20 @@ public class EventRegistrationService {
             throw new ResourceNotFoundException("Event not found with id: " + eventId);
         }
 
-        boolean userExists = userRepository.existsByEmail(email);
+        boolean userExists = userRepository.existsByEmailIgnoreCase(email);
 
         if (userExists) {
+            // ... (check memberEventRepository, etc.)
             if (memberEventRepository.existsByUserEmailAndEventId(email, eventId)) {
                 throw new IllegalArgumentException("This email has already registered for this event.");
             }
 
+            // ... (rest of logic)
             otpService.generateAndSendLoginOtp(email);
             return "Login OTP has been sent to your email.";
 
         } else {
+            // ... (registration logic)
             String randomPassword = authService.generateRandomPassword();
 
             RegisterOtpRequestDto registerRequest = new RegisterOtpRequestDto();
@@ -112,8 +116,9 @@ public class EventRegistrationService {
 
     @SuppressWarnings("null")
     @Transactional
-    public EventRegisterResponseDto verifyOtpAndRegister(Integer eventId, LoginOtpAndEventRegisterVerifyRequestDto request) {
-        
+    public EventRegisterResponseDto verifyOtpAndRegister(Integer eventId,
+            LoginOtpAndEventRegisterVerifyRequestDto request) {
+
         String email = request.getEmail();
         String otp = request.getOtp();
 
@@ -127,14 +132,15 @@ public class EventRegistrationService {
         Cache loginOtpCache = cacheManager.getCache("loginOtp");
         Cache registrationOtpCache = cacheManager.getCache("registrationOtp");
 
+        // Check Login OTP Cache
         if (loginOtpCache.get(email) != null) {
-            otpService.verifyLoginOtp(email, otp); 
+            otpService.verifyLoginOtp(email, otp);
 
-            User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+            User user = userRepository.findByEmailIgnoreCase(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found."));
 
             String token = jwtService.generateToken(user);
-            
+
             if (memberEventRepository.existsByUserIdAndEventId(user.getId(), eventId)) {
                 return EventRegisterResponseDto.builder()
                         .message("You are already registered for this event. Logged in successfully.")
@@ -143,7 +149,7 @@ public class EventRegistrationService {
             }
 
             String qrCodeUrl = registerUserForEvent(user, event);
-            
+
             return EventRegisterResponseDto.builder()
                     .message("Login and event registration successful.")
                     .token(token)
@@ -162,14 +168,15 @@ public class EventRegistrationService {
             User registeredUser = authService.registerWithOtp(authRequest, true);
             String qrCodeUrl = registerUserForEvent(registeredUser, event);
             String token = jwtService.generateToken(registeredUser);
-            
+
             return EventRegisterResponseDto.builder()
                     .message("New user registered and event registration successful.")
                     .token(token)
                     .qrCodeUrl(qrCodeUrl)
                     .build();
         }
-        throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
+        throw new IllegalArgumentException(
+                "Verification failed. No OTP was requested for this email or the OTP has expired.");
     }
 
     @SuppressWarnings("UseSpecificCatch")
@@ -193,7 +200,7 @@ public class EventRegistrationService {
             String fileName = "user_" + user.getId() + "_event_" + event.getId() + ".png";
             Path storageDirectory = Paths.get(qrStoragePath);
             Path destinationFile = storageDirectory.resolve(fileName);
-            
+
             ImageIO.write(qrImage, "png", destinationFile.toFile());
 
             String urlPath = "/upload/qr/" + fileName;
@@ -209,7 +216,7 @@ public class EventRegistrationService {
 
     @Transactional
     public String registerAuthenticatedUser(Integer eventId, String userEmail) {
-        
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found (from token)"));
 
@@ -230,12 +237,12 @@ public class EventRegistrationService {
     }
 
     @Transactional
-    public GenericResponse<CheckInResponseDto> checkInUser(CheckInRequestDto request) {
+    public GenericResponse<CheckInResponseDto> checkInUser(CheckInRequestDto request, String requesterEmail) {
         try {
             String decryptedString = encryptionUtil.decrypt(request.getQrContent());
 
             String[] parts = decryptedString.split(" ");
-            
+
             if (parts.length < 3) {
                 throw new IllegalArgumentException("Invalid QR Code format.");
             }
@@ -250,8 +257,10 @@ public class EventRegistrationService {
             Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
             Integer eventId = Integer.parseInt(eventIdPart.replace("EID", ""));
 
+            validateCheckInPermissions(requesterEmail, eventId);
+
             MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
 
             Event event = memberEvent.getEvent();
             if (event.getEndDate() != null && LocalDateTime.now().isAfter(event.getEndDate())) {
@@ -274,20 +283,25 @@ public class EventRegistrationService {
             responseDto.setEventName(memberEvent.getEvent().getEventName());
             return new GenericResponse<>("Check-in successful", responseDto);
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (NumberFormatException e) {
-             throw new IllegalArgumentException("Invalid ID format inside QR.");
+            throw new IllegalArgumentException("Invalid ID format inside QR.");
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid QR Code data.");
         }
     }
-    
+
     @Transactional
-    public String manualCheckInUser(ManualCheckInRequestDto request){
+    public String manualCheckInUser(ManualCheckInRequestDto request, String requesterEmail) {
         try {
-            MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(request.getUserId(), request.getEventId())
-            .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
+            validateCheckInPermissions(requesterEmail, request.getEventId());
+
+            MemberEvent memberEvent = memberEventRepository
+                    .findByUserIdAndEventId(request.getUserId(), request.getEventId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Registration data not found."));
 
             Event event = memberEvent.getEvent();
             if (event.getEndDate() != null && LocalDateTime.now().isAfter(event.getEndDate())) {
@@ -302,43 +316,13 @@ public class EventRegistrationService {
             memberEventRepository.save(memberEvent);
 
             return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             throw new IllegalArgumentException("Manual check-in failed: " + e.getMessage());
         }
-        
-        
+
     }
-
-    // public SearchUserCheckInResponseDto searchUser(SearchUserCheckInRequestDto request) {
-    //     Optional<User> user = userRepository.findByEmail(request.getEmail());
-    //     if (user.isEmpty()) {
-    //          throw new ResourceNotFoundException("User not found with email: " + request.getEmail());
-    //     }
-
-    //     Optional<MemberEvent> foundUserInEvent = memberEventRepository
-    //         .findByUserEmailAndEventId(request.getEmail(), request.getEventId());
-    //     if (foundUserInEvent.isEmpty()) {
-    //         throw new ResourceNotFoundException(
-    //             "Email: " + request.getEmail() + " is not registered for event id: " + request.getEventId()
-    //         );
-    //     }
-        
-    //     MemberEvent memberEvent = foundUserInEvent.get();
-
-    //     if (memberEvent.getEventRole() != MemberEventRole.VISITOR) {
-    //         throw new ResourceNotFoundException("User is not a visitor for this event.");
-    //     }
-        
-    //         User foundUser = foundUserInEvent.get().getUser();
-    //         SearchUserCheckInResponseDto responseDto = new SearchUserCheckInResponseDto();
-    //         responseDto.setUserId(foundUser.getId());
-    //         responseDto.setName(foundUser.getFirstName() + " " + foundUser.getLastName());
-    //         responseDto.setEmail(foundUser.getEmail());
-    //         responseDto.setStatus(foundUserInEvent.get().getStatus().toString());
-    //         return responseDto;
-        
-        
-    // }
 
     public List<SearchUserCheckInResponseDto> searchUser(SearchUserCheckInRequestDto request) {
         String query = request.getQuery().trim();
@@ -366,12 +350,13 @@ public class EventRegistrationService {
         }).collect(Collectors.toList());
     }
 
-    public CheckInPreviewResponseDto getCheckInPreview(CheckInRequestDto request) {
+    public CheckInPreviewResponseDto getCheckInPreview(CheckInRequestDto request, String requesterEmail) {
         try {
             String decryptedString = encryptionUtil.decrypt(request.getQrContent());
             String[] parts = decryptedString.split(" ");
-            
-            if (parts.length < 3) throw new IllegalArgumentException("Invalid QR Code format.");
+
+            if (parts.length < 3)
+                throw new IllegalArgumentException("Invalid QR Code format.");
 
             String userIdPart = parts[0];
             String eventIdPart = parts[1];
@@ -382,6 +367,8 @@ public class EventRegistrationService {
 
             Integer userId = Integer.parseInt(userIdPart.replace("UID", ""));
             Integer eventId = Integer.parseInt(eventIdPart.replace("EID", ""));
+
+            validateCheckInPermissions(requesterEmail, eventId);
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found from QR data."));
@@ -404,9 +391,21 @@ public class EventRegistrationService {
 
             return response;
 
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
-            System.err.println("QR Decryption Error: " + e.getMessage()); 
+            System.err.println("QR Decryption Error: " + e.getMessage());
             throw new IllegalArgumentException("Invalid QR Code data.");
+        }
+    }
+
+    private void validateCheckInPermissions(String requesterEmail, Integer eventId) {
+        MemberEvent requester = memberEventRepository.findByUserEmailAndEventId(requesterEmail, eventId)
+                .orElseThrow(() -> new IllegalArgumentException("User is not a member of this event."));
+
+        if (requester.getEventRole() != MemberEventRole.ORGANIZER
+                && requester.getEventRole() != MemberEventRole.STAFF) {
+            throw new AccessDeniedException("Only Organizer or Staff can perform check-in operations.");
         }
     }
 }

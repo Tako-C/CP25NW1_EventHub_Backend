@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class SurveyGroupResponseDto {
-    private SurveyResponseDto visitor;
-    private SurveyResponseDto exhibitor;
+    private List<SurveyResponseDto> visitor;
+    private List<SurveyResponseDto> exhibitor;
 }

@@ -29,7 +29,6 @@ import com.int371.eventhub.service.EventService;
 import jakarta.validation.Valid;
 // import org.springframework.web.bind.annotation.RequestBody;
 
-
 @RestController
 @RequestMapping("/events")
 public class EventController {
@@ -40,45 +39,46 @@ public class EventController {
     public ResponseEntity<ApiResponse<List<EventResponseDto>>> getAllEvents() {
         List<EventResponseDto> events = eventService.getAllEvents();
         ApiResponse<List<EventResponseDto>> response = new ApiResponse<>(
-            HttpStatus.OK.value(), 
-            "Events fetched successfully", 
-            events
-        );
+                HttpStatus.OK.value(),
+                "Events fetched successfully",
+                events);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<EventResponseDto>> getEventById(@PathVariable Integer id) {
-        EventResponseDto event = eventService.getEventById(id);
+    public ResponseEntity<ApiResponse<EventResponseDto>> getEventById(@PathVariable Integer id, Principal principal) {
+        String email = (principal != null) ? principal.getName() : null;
+        EventResponseDto event = eventService.getEventById(id, email);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
-            HttpStatus.OK.value(), 
-            "Event fetched successfully", 
-            event
-        );
+                HttpStatus.OK.value(),
+                "Event fetched successfully",
+                event);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(@Valid @ModelAttribute EventRequestDto dto, Principal principal) {
+    public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(@Valid @ModelAttribute EventRequestDto dto,
+            Principal principal) {
         String email = principal.getName();
-        EventResponseDto createdEvent = eventService.createEvent( dto, email);
+        EventResponseDto createdEvent = eventService.createEvent(dto, email);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
                 HttpStatus.CREATED.value(),
                 "Event created successfully",
-                createdEvent
-        );
+                createdEvent);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<EventResponseDto>> updateEvent(@PathVariable Integer id, @Valid@ModelAttribute EditEventRequestDto dto) {
+    public ResponseEntity<ApiResponse<EventResponseDto>> updateEvent(@PathVariable Integer id,
+            @Valid @ModelAttribute EditEventRequestDto dto) {
         Event updatedEvent = eventService.updateEvent(id, dto);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
-            HttpStatus.OK.value(),
-            "Event updated successfully",
-            eventService.getEventById(updatedEvent.getId())
-        );
+                HttpStatus.OK.value(),
+                "Event updated successfully",
+                eventService.getEventById(updatedEvent.getId(), null));
         return ResponseEntity.ok(response);
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteEvent(@PathVariable Integer id) {
         try {
@@ -87,49 +87,45 @@ public class EventController {
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(new ApiResponse<>(404, e.getMessage(), null));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ApiResponse<>(500, "Error deleting event: " + e.getMessage(), null));
+            return ResponseEntity.status(500)
+                    .body(new ApiResponse<>(500, "Error deleting event: " + e.getMessage(), null));
         }
     }
-    
+
     @DeleteMapping("/{id}/images")
     public ResponseEntity<ApiResponse<Object>> deleteEventImage(
             @PathVariable Integer id,
             @RequestParam String category,
             @RequestParam(required = false) Integer index) {
 
-        eventService.deleteEventImage(id, category, index);  
+        eventService.deleteEventImage(id, category, index);
         ApiResponse<Object> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Image deleted successfully",
-                null
-        );
-    return ResponseEntity.ok(response);
+                null);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/types")
     public ResponseEntity<ApiResponse<List<EventTypeDto>>> getAllEventTypes() {
         List<EventTypeDto> eventTypes = eventService.getAllEventTypes();
-        
+
         ApiResponse<List<EventTypeDto>> response = new ApiResponse<>(
-            HttpStatus.OK.value(), 
-            "Event types fetched successfully", 
-            eventTypes
-        );
+                HttpStatus.OK.value(),
+                "Event types fetched successfully",
+                eventTypes);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("image/types")
     public ResponseEntity<ApiResponse<List<String>>> getAllEventImageTypes() {
         List<String> imageTypes = eventService.getAllEventImageTypes();
-        
+
         ApiResponse<List<String>> response = new ApiResponse<>(
-            HttpStatus.OK.value(), 
-            "Event image types fetched successfully", 
-            imageTypes
-        );
+                HttpStatus.OK.value(),
+                "Event image types fetched successfully",
+                imageTypes);
         return ResponseEntity.ok(response);
     }
-    
-
 
 }

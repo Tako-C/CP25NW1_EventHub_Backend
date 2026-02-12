@@ -25,20 +25,22 @@ public class QrCheckInController {
     private EventRegistrationService eventRegistrationService;
 
     @PostMapping("/check-in")
-    public GenericResponse<CheckInResponseDto> checkInUser(@Valid @RequestBody CheckInRequestDto request) {
-        return eventRegistrationService.checkInUser(request);   
+    public GenericResponse<CheckInResponseDto> checkInUser(@Valid @RequestBody CheckInRequestDto request,
+            java.security.Principal principal) {
+        return eventRegistrationService.checkInUser(request, principal.getName());
     }
 
     @PostMapping("/user-info")
-    public ResponseEntity<ApiResponse<CheckInPreviewResponseDto>> getUserInfoFromQr(@Valid @RequestBody CheckInRequestDto request) {
-        
-        CheckInPreviewResponseDto previewData = eventRegistrationService.getCheckInPreview(request);
+    public ResponseEntity<ApiResponse<CheckInPreviewResponseDto>> getUserInfoFromQr(
+            @Valid @RequestBody CheckInRequestDto request, java.security.Principal principal) {
+
+        CheckInPreviewResponseDto previewData = eventRegistrationService.getCheckInPreview(request,
+                principal.getName());
 
         ApiResponse<CheckInPreviewResponseDto> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Preview info fetched successfully",
-                previewData
-        );
+                previewData);
         return ResponseEntity.ok(response);
     }
 }
