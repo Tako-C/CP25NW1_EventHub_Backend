@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
 import com.int371.eventhub.entity.Event;
@@ -60,4 +61,11 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
     List<SurveyResponseSubmissionStatusDto> findSurveySubmissionStatus(
             Integer eventId,
             Integer surveyId);
+
+    @Query("SELECT me FROM MemberEvent me JOIN me.user u WHERE " +
+           "me.event.id = :eventId AND me.eventRole = MemberEventRole.VISITOR AND (" +
+           "LOWER(u.email) = LOWER(:query) OR " +
+           "u.phone = :query OR " +
+           "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :query, '%')))")
+    List<MemberEvent> searchVisitorsFlexibly(@Param("eventId") Integer eventId, @Param("query") String query);
 }
