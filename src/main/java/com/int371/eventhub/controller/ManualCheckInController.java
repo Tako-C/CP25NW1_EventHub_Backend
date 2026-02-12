@@ -1,5 +1,7 @@
 package com.int371.eventhub.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +28,7 @@ public class ManualCheckInController {
     @PostMapping("/search")
     public ResponseEntity<?> searchUserCheckIn(@RequestBody SearchUserCheckInRequestDto request) {
         try {
-            SearchUserCheckInResponseDto response = eventRegistrationService.searchUser(request);
+            List<SearchUserCheckInResponseDto> response = eventRegistrationService.searchUser(request);
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException ex) {
             ApiResponse<String> apiResponse = new ApiResponse<>(

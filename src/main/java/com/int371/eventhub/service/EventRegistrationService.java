@@ -5,7 +5,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -307,35 +309,61 @@ public class EventRegistrationService {
         
     }
 
-    public SearchUserCheckInResponseDto searchUser(SearchUserCheckInRequestDto request) {
-        Optional<User> user = userRepository.findByEmail(request.getEmail());
-        if (user.isEmpty()) {
-             throw new ResourceNotFoundException("User not found with email: " + request.getEmail());
+    // public SearchUserCheckInResponseDto searchUser(SearchUserCheckInRequestDto request) {
+    //     Optional<User> user = userRepository.findByEmail(request.getEmail());
+    //     if (user.isEmpty()) {
+    //          throw new ResourceNotFoundException("User not found with email: " + request.getEmail());
+    //     }
+
+    //     Optional<MemberEvent> foundUserInEvent = memberEventRepository
+    //         .findByUserEmailAndEventId(request.getEmail(), request.getEventId());
+    //     if (foundUserInEvent.isEmpty()) {
+    //         throw new ResourceNotFoundException(
+    //             "Email: " + request.getEmail() + " is not registered for event id: " + request.getEventId()
+    //         );
+    //     }
+        
+    //     MemberEvent memberEvent = foundUserInEvent.get();
+
+    //     if (memberEvent.getEventRole() != MemberEventRole.VISITOR) {
+    //         throw new ResourceNotFoundException("User is not a visitor for this event.");
+    //     }
+        
+    //         User foundUser = foundUserInEvent.get().getUser();
+    //         SearchUserCheckInResponseDto responseDto = new SearchUserCheckInResponseDto();
+    //         responseDto.setUserId(foundUser.getId());
+    //         responseDto.setName(foundUser.getFirstName() + " " + foundUser.getLastName());
+    //         responseDto.setEmail(foundUser.getEmail());
+    //         responseDto.setStatus(foundUserInEvent.get().getStatus().toString());
+    //         return responseDto;
+        
+        
+    // }
+
+    public List<SearchUserCheckInResponseDto> searchUser(SearchUserCheckInRequestDto request) {
+        String query = request.getQuery().trim();
+        Integer eventId = request.getEventId();
+
+        System.err.println("Searching for query: " + query + " in event ID: " + eventId);
+
+        // ค้นหาข้อมูลจาก Repository (ครอบคลุมทั้ง Exact Email/Phone และ Partial Name)
+        List<MemberEvent> members = memberEventRepository.searchVisitorsFlexibly(eventId, query);
+
+        if (members.isEmpty()) {
+            throw new ResourceNotFoundException("ไม่พบข้อมูลผู้ลงทะเบียนที่ตรงกับ: " + query);
         }
 
-        Optional<MemberEvent> foundUserInEvent = memberEventRepository
-            .findByUserEmailAndEventId(request.getEmail(), request.getEventId());
-        if (foundUserInEvent.isEmpty()) {
-            throw new ResourceNotFoundException(
-                "Email: " + request.getEmail() + " is not registered for event id: " + request.getEventId()
-            );
-        }
-        
-        MemberEvent memberEvent = foundUserInEvent.get();
-
-        if (memberEvent.getEventRole() != MemberEventRole.VISITOR) {
-            throw new ResourceNotFoundException("User is not a visitor for this event.");
-        }
-        
-            User foundUser = foundUserInEvent.get().getUser();
-            SearchUserCheckInResponseDto responseDto = new SearchUserCheckInResponseDto();
-            responseDto.setUserId(foundUser.getId());
-            responseDto.setName(foundUser.getFirstName() + " " + foundUser.getLastName());
-            responseDto.setEmail(foundUser.getEmail());
-            responseDto.setStatus(foundUserInEvent.get().getStatus().toString());
-            return responseDto;
-        
-        
+        // แปลงจาก Entity เป็น DTO List
+        return members.stream().map(me -> {
+            User user = me.getUser();
+            SearchUserCheckInResponseDto dto = new SearchUserCheckInResponseDto();
+            dto.setUserId(user.getId());
+            dto.setName(user.getFirstName() + " " + user.getLastName());
+            dto.setEmail(user.getEmail());
+            // แนะนำให้ส่ง Phone ไปด้วยเพื่อให้ Admin แยกแยะคนชื่อซ้ำได้ง่ายขึ้น
+            dto.setStatus(me.getStatus().toString());
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     public CheckInPreviewResponseDto getCheckInPreview(CheckInRequestDto request) {

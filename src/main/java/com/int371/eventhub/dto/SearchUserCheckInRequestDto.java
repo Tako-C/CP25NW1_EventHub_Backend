@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class SearchUserCheckInRequestDto {
-    private String email;
+    private String query; // search by name, email, or phone
     private Integer eventId;
 }
