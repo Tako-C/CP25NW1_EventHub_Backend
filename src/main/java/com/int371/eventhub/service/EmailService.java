@@ -134,14 +134,14 @@ public class EmailService {
     }
 
     @Async
-    public void sendPostSurveyEmail(String to, String userName, String eventName, Integer eventId, Integer userId)
+    public void sendPostSurveyEmail(String to, String userName, String eventName, Integer eventId, String token)
             throws MessagingException, UnsupportedEncodingException {
-        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "?u=" + userId;
+        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "?u=" + token;
 
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        String htmlContent = buildPostSurveyEmailContent(userName, eventName, eventId, surveyLink, userId);
+        String htmlContent = buildPostSurveyEmailContent(userName, eventName, eventId, surveyLink, token);
 
         helper.setFrom("noreply@eventhub.com", "EventHub Team");
         helper.setTo(to);
@@ -151,7 +151,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    private String buildPostSurveyEmailContent(String userName, String eventName, Integer eventId, String surveyLink, Integer userId) {
+    private String buildPostSurveyEmailContent(String userName, String eventName, Integer eventId, String surveyLink, String token) {
         // String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "/survey/post" + "?u=" + userName;
         return "<!DOCTYPE html>"
                 + "<html>"
