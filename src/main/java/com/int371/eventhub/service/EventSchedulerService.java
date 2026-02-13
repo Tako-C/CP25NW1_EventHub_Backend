@@ -43,6 +43,7 @@ public class EventSchedulerService {
     public void updateEventStatus() {
         LocalDateTime now = LocalDateTime.now();
 
+        log.info("Current Server Time: {}", now);
         // 1. UPCOMING -> ONGOING
         // Find UPCOMING events that defined start date is passed
         List<Event> upcomingToOngoing = eventRepository.findAllByStartDateBeforeAndStatus(now, EventStatus.UPCOMING);
@@ -101,7 +102,8 @@ public class EventSchedulerService {
                             member.getUser().getEmail(),
                             member.getUser().getFirstName(),
                             event.getEventName(),
-                            event.getId());
+                            event.getId(),
+                            member.getUser().getId());
                 }
             }
         } catch (Exception e) {

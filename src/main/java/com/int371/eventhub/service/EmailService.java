@@ -134,12 +134,14 @@ public class EmailService {
     }
 
     @Async
-    public void sendPostSurveyEmail(String to, String userName, String eventName, Integer eventId)
+    public void sendPostSurveyEmail(String to, String userName, String eventName, Integer eventId, Integer userId)
             throws MessagingException, UnsupportedEncodingException {
+        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "?u=" + userId;
+
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        String htmlContent = buildPostSurveyEmailContent(userName, eventName, eventId);
+        String htmlContent = buildPostSurveyEmailContent(userName, eventName, eventId, surveyLink, userId);
 
         helper.setFrom("noreply@eventhub.com", "EventHub Team");
         helper.setTo(to);
@@ -149,8 +151,8 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    private String buildPostSurveyEmailContent(String userName, String eventName, Integer eventId) {
-        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "/survey/post";
+    private String buildPostSurveyEmailContent(String userName, String eventName, Integer eventId, String surveyLink, Integer userId) {
+        // String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "/survey/post" + "?u=" + userName;
         return "<!DOCTYPE html>"
                 + "<html>"
                 + "<head>"
@@ -176,6 +178,7 @@ public class EmailService {
                 + "<a href='" + surveyLink + "' class='btn' style='color: #ffffff !important;'>Take the Survey</a>"
                 + "</div>"
                 + "<div class='footer'>"
+                + "<p>Survey Link: <a href='" + surveyLink + "'>" + surveyLink + "</a></p>"
                 + "&copy; 2026 EventHub. All rights reserved.<br>"
                 + "This email was sent automatically. Please do not reply."
                 + "</div>"
