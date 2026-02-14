@@ -37,18 +37,29 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                                 .requestMatchers(HttpMethod.OPTIONS, "/auth/**").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
+                                                .requestMatchers("/surveys/**").permitAll()
+                                                .requestMatchers("/error").permitAll()
+
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register/otp/request")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register/otp/verify")
                                                 .permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**",
-                                                                "/api/events/**")
+                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**","/api/events/**")
                                                 .permitAll()
+
                                                 // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
-                                                .requestMatchers("/upload/qr/**").authenticated()
+                                                .requestMatchers(HttpMethod.POST, "/surveys/submit/**").hasAnyRole("USER", "SURVEY_GUEST")
+
+                                                .requestMatchers("/users/**").hasRole("USER")
+
+                                                .requestMatchers("/events/*/surveys/answers**").hasAnyRole("USER", "SURVEY_GUEST")
+
+                                                .requestMatchers(HttpMethod.POST, "/events/*/register").hasRole("USER")
+
+                                                .requestMatchers("/upload/qr/**").hasRole("USER")
                                                 .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
-                                                .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
-                                                .requestMatchers("/users/**").authenticated()
+                                                // .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
+                                                // .requestMatchers("/users/**").authenticated()
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

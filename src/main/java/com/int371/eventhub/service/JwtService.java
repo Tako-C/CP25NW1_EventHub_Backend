@@ -41,6 +41,7 @@ public class JwtService {
         extraClaims.put("userId", user.getId());
         extraClaims.put("firstName", user.getFirstName());
         extraClaims.put("role", user.getRole().name());
+        extraClaims.put("tokenRole", "USER"); 
 
         return Jwts.builder()
                 .setClaims(extraClaims)
@@ -49,6 +50,24 @@ public class JwtService {
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String generateSurveyToken(User user) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("userId", user.getId());
+        extraClaims.put("firstName", user.getFirstName());
+        extraClaims.put("role", user.getRole().name());
+        extraClaims.put("tokenRole", "SURVEY_GUEST"); 
+        extraClaims.put("isRestricted", true);
+
+        return Jwts.builder()
+                .setClaims(extraClaims)
+                .setSubject(user.getEmail())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + (1000 * 60 * 30 ))) // 30 minutes
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+        
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {

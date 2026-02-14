@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class SurveyToken {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.UUID) // สร้าง UUID แบบสุ่มที่เดายาก
     private String token;
 
     @ManyToOne

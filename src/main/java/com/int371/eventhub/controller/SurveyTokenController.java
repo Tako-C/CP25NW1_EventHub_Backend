@@ -1,13 +1,22 @@
 package com.int371.eventhub.controller;
 
+import com.int371.eventhub.dto.SurveyVerifyResponseDto;
+import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.SurveyToken;
+import com.int371.eventhub.repository.EventRepository;
+import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.SurveyTokenRepository;
+import com.int371.eventhub.service.JwtService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.reflect.Member;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/surveys")
@@ -16,31 +25,76 @@ public class SurveyTokenController {
     @Autowired
     private SurveyTokenRepository surveyTokenRepository;
 
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private MemberEventRepository mem;
+
+    @Autowired
+    private EventRepository eventRepository;
+
     @GetMapping("/verify")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> verifyToken(@RequestParam("t") String token) {
-        // 1. ค้นหา Token ในฐานข้อมูล
-        SurveyToken surveyToken = surveyTokenRepository.findById(token).orElse(null);
+        try {
+            // 1. ค้นหา Token
+            SurveyToken surveyToken = surveyTokenRepository.findById(token).orElse(null);
 
-        // 2. ตรวจสอบว่ามี Token นี้อยู่จริงไหม
-        if (surveyToken == null) {
-            return ResponseEntity.status(404).body(Map.of("message", "Invalid survey link"));
+            if (surveyToken == null) {
+                return ResponseEntity.status(404).body(Map.of("message", "ลิงก์แบบสำรวจไม่ถูกต้อง"));
+            }
+
+            // 2. ตรวจสอบสถานะการใช้งานและวันหมดอายุ
+            if (surveyToken.isUsed()) {
+                return ResponseEntity.status(400).body(Map.of("message", "แบบสำรวจนี้ได้ถูกส่งไปแล้ว"));
+            }
+
+            if (surveyToken.getExpiryDate() != null && surveyToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+                return ResponseEntity.status(410).body(Map.of("message", "ลิงก์นี้หมดอายุแล้ว"));
+            }
+
+            // 3. ตรวจสอบว่า User และ Event ใน Token ไม่เป็น Null
+            if (surveyToken.getUser() == null || surveyToken.getEvent() == null) {
+                return ResponseEntity.status(500).body(Map.of("message", "ข้อมูลในระบบไม่สมบูรณ์ (ไม่พบผู้ใช้หรือกิจกรรม)"));
+            }
+
+            // 4. ดึง Role และสร้าง Access Token
+            Optional<MemberEvent> memEventRole = mem.findByUserIdAndEventId(
+                    surveyToken.getUser().getId(), 
+                    surveyToken.getEvent().getId()
+            );
+
+            if (memEventRole == null || !memEventRole.isPresent()) {
+                return ResponseEntity.status(403).body(Map.of("message", "คุณไม่มีสิทธิ์เข้าถึงแบบสำรวจนี้"));
+            }
+
+            Optional<Event> event = eventRepository.findById(surveyToken.getEvent().getId());
+
+            if (!event.isPresent()) {
+                return ResponseEntity.status(404).body(Map.of("message", "ไม่พบข้อมูลกิจกรรม"));
+            }
+
+            String accessToken = jwtService.generateSurveyToken(surveyToken.getUser());
+
+            // 5. สร้าง DTO และส่งข้อมูลกลับ
+            SurveyVerifyResponseDto response = new SurveyVerifyResponseDto(
+                event.get().getId(),                     
+                event.get().getEventName(),               
+                surveyToken.getUser().getId(), 
+                surveyToken.getUser().getFirstName(), 
+                surveyToken.getUser().getLastName(), 
+                memEventRole.get().getEventRole().toString(),  // แปลง Role เป็น String
+                accessToken
+            );
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace(); 
+            return ResponseEntity.status(500).body(Map.of(
+                "message", "เกิดข้อผิดพลาดภายในระบบ",
+                "error", e.getMessage()
+            ));
         }
-
-        // 3. ตรวจสอบว่าเคยถูกใช้ไปแล้วหรือยัง
-        if (surveyToken.isUsed()) {
-            return ResponseEntity.status(400).body(Map.of("message", "This survey has already been submitted"));
-        }
-
-        // 4. ตรวจสอบวันหมดอายุ
-        if (surveyToken.getExpiryDate() != null && surveyToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.status(410).body(Map.of("message", "This link has expired"));
-        }
-
-        // 5. ถ้าผ่านทุกเงื่อนไข ให้ส่งข้อมูลที่จำเป็นกลับไปให้หน้าบ้าน (เช่น ชื่อ Event หรือประเภทสมาชิก)
-        return ResponseEntity.ok(Map.of(
-                "eventName", surveyToken.getEvent().getEventName(),
-                "eventId", surveyToken.getEvent().getId(),
-                "firstName", surveyToken.getUser().getFirstName()
-        ));
     }
 }
