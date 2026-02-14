@@ -270,6 +270,23 @@ public class EventService {
         event.setCreatedBy(dto.getCreatedBy());
         event.setUpdatedAt(LocalDateTime.now());
 
+
+        // ส่วนที่เพิ่ม: อัปเดตสถานะ Event อัตโนมัติ (Auto Status Update)
+        if (event.getStartDate() != null && event.getEndDate() != null) {
+            LocalDateTime now = LocalDateTime.now();
+            
+            if (now.isBefore(event.getStartDate())) {
+                event.setStatus(EventStatus.UPCOMING);
+            } else if (now.isAfter(event.getEndDate())) {
+                event.setStatus(EventStatus.FINISHED);
+            } else {
+                event.setStatus(EventStatus.ONGOING);
+            }
+        }
+        else {
+            // ถ้าไม่มีวันที่ครบถ้วน ให้ตั้งสถานะเป็น UPCOMING เป็นค่าเริ่มต้น
+            event.setStatus(EventStatus.UPCOMING);
+        }
         // Update Event Type if provided
 
         if (dto.getEventTypeId() != null) {
