@@ -2,6 +2,7 @@ package com.int371.eventhub.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -141,6 +142,16 @@ public class EventSchedulerService {
                 }
 
                 if (shouldSend) {
+                    Optional<SurveyToken> existingToken = surveyTokenRepository.findByUserIdAndEventId(
+                        member.getUser().getId(), 
+                        event.getId()
+                    );
+
+                    // หากเคยมี Token แล้ว และถูกใช้ไปแล้ว (isUsed = true) ให้ข้ามคนนี้ไปเลย
+                    if (existingToken.isPresent() && existingToken.get().isUsed()) {
+                        log.info("ผู้ใช้ {} สำหรับกิจกรรม {} มี Token ที่ถูกใช้แล้ว ข้ามการส่งอีเมล", member.getUser().getEmail(), event.getId());
+                        continue; 
+                    }
                     // --- เพิ่มขั้นตอนสร้าง Token ที่นี่ ---
                     SurveyToken surveyToken = new SurveyToken();
                     surveyToken.setUser(member.getUser());

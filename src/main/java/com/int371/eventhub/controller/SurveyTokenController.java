@@ -1,5 +1,6 @@
 package com.int371.eventhub.controller;
 
+import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.SurveyVerifyResponseDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
@@ -10,10 +11,10 @@ import com.int371.eventhub.repository.SurveyTokenRepository;
 import com.int371.eventhub.service.JwtService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.reflect.Member;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
@@ -42,21 +43,25 @@ public class SurveyTokenController {
             SurveyToken surveyToken = surveyTokenRepository.findById(token).orElse(null);
 
             if (surveyToken == null) {
-                return ResponseEntity.status(404).body(Map.of("message", "ลิงก์แบบสำรวจไม่ถูกต้อง"));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(HttpStatus.NOT_FOUND.value(), "ลิงก์แบบสำรวจไม่ถูกต้อง", null));
             }
 
             // 2. ตรวจสอบสถานะการใช้งานและวันหมดอายุ
             if (surveyToken.isUsed()) {
-                return ResponseEntity.status(400).body(Map.of("message", "แบบสำรวจนี้ได้ถูกส่งไปแล้ว"));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(HttpStatus.BAD_REQUEST.value(), "แบบสำรวจนี้ได้ถูกส่งไปแล้ว", null));
             }
 
             if (surveyToken.getExpiryDate() != null && surveyToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-                return ResponseEntity.status(410).body(Map.of("message", "ลิงก์นี้หมดอายุแล้ว"));
+                return ResponseEntity.status(HttpStatus.GONE)
+                    .body(new ApiResponse<>(HttpStatus.GONE.value(), "ลิงก์นี้หมดอายุแล้ว", null));
             }
 
-            // 3. ตรวจสอบว่า User และ Event ใน Token ไม่เป็น Null
+            // 3. ตรวจสอบความสมบูรณ์ของข้อมูล
             if (surveyToken.getUser() == null || surveyToken.getEvent() == null) {
-                return ResponseEntity.status(500).body(Map.of("message", "ข้อมูลในระบบไม่สมบูรณ์ (ไม่พบผู้ใช้หรือกิจกรรม)"));
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "ข้อมูลในระบบไม่สมบูรณ์", null));
             }
 
             // 4. ดึง Role และสร้าง Access Token
@@ -65,36 +70,44 @@ public class SurveyTokenController {
                     surveyToken.getEvent().getId()
             );
 
-            if (memEventRole == null || !memEventRole.isPresent()) {
-                return ResponseEntity.status(403).body(Map.of("message", "คุณไม่มีสิทธิ์เข้าถึงแบบสำรวจนี้"));
+            if (memEventRole.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(HttpStatus.FORBIDDEN.value(), "คุณไม่มีสิทธิ์เข้าถึงแบบสำรวจนี้", null));
             }
 
             Optional<Event> event = eventRepository.findById(surveyToken.getEvent().getId());
-
-            if (!event.isPresent()) {
-                return ResponseEntity.status(404).body(Map.of("message", "ไม่พบข้อมูลกิจกรรม"));
+            if (event.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(HttpStatus.NOT_FOUND.value(), "ไม่พบข้อมูลกิจกรรม", null));
             }
 
+            // สร้าง Restricted Token (SURVEY_GUEST)
             String accessToken = jwtService.generateSurveyToken(surveyToken.getUser());
 
-            // 5. สร้าง DTO และส่งข้อมูลกลับ
-            SurveyVerifyResponseDto response = new SurveyVerifyResponseDto(
+            // 5. เตรียมข้อมูล DTO
+            SurveyVerifyResponseDto data = new SurveyVerifyResponseDto(
                 event.get().getId(),                     
                 event.get().getEventName(),               
                 surveyToken.getUser().getId(), 
                 surveyToken.getUser().getFirstName(), 
                 surveyToken.getUser().getLastName(), 
-                memEventRole.get().getEventRole().toString(),  // แปลง Role เป็น String
+                memEventRole.get().getEventRole().toString(),
                 accessToken
             );
+
+            // 6. ส่งกลับในรูปแบบ ApiResponse
+            ApiResponse<SurveyVerifyResponseDto> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "ตรวจสอบสถานะลิงก์สำเร็จ",
+                data
+            );
+            
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             e.printStackTrace(); 
-            return ResponseEntity.status(500).body(Map.of(
-                "message", "เกิดข้อผิดพลาดภายในระบบ",
-                "error", e.getMessage()
-            ));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "เกิดข้อผิดพลาด: " + e.getMessage(), null));
         }
     }
 }

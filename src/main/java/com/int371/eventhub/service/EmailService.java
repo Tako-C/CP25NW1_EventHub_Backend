@@ -136,7 +136,7 @@ public class EmailService {
     @Async
     public void sendPostSurveyEmail(String to, String userName, String eventName, Integer eventId, String token)
             throws MessagingException, UnsupportedEncodingException {
-        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId + "?u=" + token;
+        String surveyLink = "https://bscit.sit.kmutt.ac.th/capstone25/cp25nw1/event/" + eventId +"/survey/post/"+ "?u=" + token;
 
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
