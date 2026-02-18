@@ -16,11 +16,11 @@ import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.Survey;
 import com.int371.eventhub.entity.SurveyStatus;
-import com.int371.eventhub.entity.SurveyToken;
 import com.int371.eventhub.entity.SurveyType;
+import com.int371.eventhub.entity.User;
 import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.SurveyRepository;
-import com.int371.eventhub.repository.SurveyTokenRepository;
+import com.int371.eventhub.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -36,9 +36,11 @@ public class EventSchedulerService {
     @Autowired
     private SurveyRepository surveyRepository;
     @Autowired
-    private SurveyTokenRepository surveyTokenRepository;
+    private UserRepository userRepository;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private JwtService jwtService;
 
     @Scheduled(fixedRate = 60000)
     // ลบ @Transactional ออกจากที่นี่ เพื่อไม่ให้ Lock DB นานเกินไปตอนส่งเมล
@@ -76,29 +78,61 @@ public class EventSchedulerService {
         }
     }
 
-    private void sendPostSurveyEmails(Event event) {
-        try {
-            List<MemberEvent> members = memberEventRepository.findByEventId(event.getId());
-            List<Survey> surveys = surveyRepository.findByEventIdAndStatus(event.getId(), SurveyStatus.ACTIVE);
+    // private void sendPostSurveyEmails(Event event) {
+    //     try {
+    //         List<MemberEvent> members = memberEventRepository.findByEventId(event.getId());
+    //         List<Survey> surveys = surveyRepository.findByEventIdAndStatus(event.getId(), SurveyStatus.ACTIVE);
 
-            // ตรวจสอบว่ามี Post-Survey ไหม
+    //         // ตรวจสอบว่ามี Post-Survey ไหม
+    //         boolean hasVisitorSurvey = surveys.stream().anyMatch(s -> s.getType() == SurveyType.POST_VISITOR);
+    //         boolean hasExhibitorSurvey = surveys.stream().anyMatch(s -> s.getType() == SurveyType.POST_EXHIBITOR);
+
+    //         if (!hasVisitorSurvey && !hasExhibitorSurvey) return;
+
+    //         for (MemberEvent member : members) {
+    //             if (shouldSendEmail(member, hasVisitorSurvey, hasExhibitorSurvey)) {
+                    
+
+    //                 Optional<SurveyToken> existingToken = surveyTokenRepository.findByUserIdAndEventId(
+    //                     member.getUser().getId(), 
+    //                     event.getId()
+                        
+    //                 );
+    //                 Optional<User> user = userRepository.findById(member.getUser().getId());
+
+    //                 if (existingToken.isPresent()) {
+    //                     continue; 
+    //                 }
+
+    //                 createNewTokenAndSendEmail(member, event , user);
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         log.error("Failed to send post-survey emails for event {}", event.getId(), e);
+    //     }
+    // }
+
+    public void sendPostSurveyEmails(Event event) {
+        try {
+            // 1. Fetch data ที่จำเป็นทั้งหมดมาทีเดียว
+            // List<MemberEvent> members = memberEventRepository.findByEventId(event.getId());
+            List<Survey> surveys = surveyRepository.findByEventIdAndStatus(event.getId(), SurveyStatus.ACTIVE);
+            List<MemberEvent> members = memberEventRepository.findByEventIdAndSendEmail(event.getId(), 0);
+
             boolean hasVisitorSurvey = surveys.stream().anyMatch(s -> s.getType() == SurveyType.POST_VISITOR);
             boolean hasExhibitorSurvey = surveys.stream().anyMatch(s -> s.getType() == SurveyType.POST_EXHIBITOR);
 
+            if (!hasVisitorSurvey && !hasExhibitorSurvey) {
+                log.info("No active post-surveys for event {}", event.getId());
+                return;
+            }
+
             for (MemberEvent member : members) {
+                // 2. เช็ค Role ก่อนทำ Logic หนักๆ
                 if (shouldSendEmail(member, hasVisitorSurvey, hasExhibitorSurvey)) {
                     
-
-                    Optional<SurveyToken> existingToken = surveyTokenRepository.findByUserIdAndEventId(
-                        member.getUser().getId(), 
-                        event.getId()
-                    );
-
-                    if (existingToken.isPresent()) {
-                        continue; 
-                    }
-
-                    createNewTokenAndSendEmail(member, event);
+                    // 3. เรียกใช้ Helper Method โดยตรง (ไม่ต้องมี @Transactional แล้วถ้าไม่บันทึก DB)
+                    processEmailSending(member, event);
                 }
             }
         } catch (Exception e) {
@@ -106,28 +140,61 @@ public class EventSchedulerService {
         }
     }
 
-    @Transactional
-    protected void createNewTokenAndSendEmail(MemberEvent member, Event event) {
-        try {
-            SurveyToken surveyToken = new SurveyToken();
-            surveyToken.setUser(member.getUser());
-            surveyToken.setEvent(event);
-            surveyToken.setExpiryDate(LocalDateTime.now().plusDays(7));
-            surveyToken.setUsed(false);
-            
-            surveyToken = surveyTokenRepository.save(surveyToken);
+    private void processEmailSending(MemberEvent member, Event event) {
+        User user = member.getUser();
 
+        try {
+            // 1️⃣ สร้าง JWT Token
+            String surveyToken = jwtService.generateSurveyToken(user, member);
+
+            // 2️⃣ ส่ง Email
             emailService.sendPostSurveyEmail(
-                    member.getUser().getEmail(),
-                    member.getUser().getFirstName(),
+                    user.getEmail(),
+                    user.getFirstName(),
                     event.getEventName(),
                     event.getId(),
-                    surveyToken.getToken()
+                    surveyToken
             );
+
+            // 3️⃣ ถ้าสำเร็จ → set = 1
+            member.setSendEmail(1);
+            log.info("Successfully sent survey email to: {}", user.getEmail());
+
         } catch (Exception e) {
-            log.error("Error creating token for user {}", member.getUser().getEmail(), e);
+
+            // ❌ ถ้าส่งไม่สำเร็จ → set = 2
+            member.setSendEmail(2);
+            log.error("Error sending survey email to user {}: {}", 
+                    user.getEmail(), e.getMessage());
         }
+
+        memberEventRepository.save(member);
     }
+
+    // @Transactional
+    // protected void createNewTokenAndSendEmail(MemberEvent member, Event event , User user) {
+    //     try {
+    //         // SurveyToken surveyToken = new SurveyToken();
+    //         // surveyToken.setUser(member.getUser());
+    //         // surveyToken.setEvent(event);
+    //         // surveyToken.setExpiryDate(LocalDateTime.now().plusDays(7));
+    //         // surveyToken.setUsed(false);
+            
+    //         // surveyToken = surveyTokenRepository.save(surveyToken);
+
+    //         String surveyToken = jwtService.generateSurveyToken(user , member);
+    //         emailService.sendPostSurveyEmail(
+    //                 member.getUser().getEmail(),
+    //                 member.getUser().getFirstName(),
+    //                 event.getEventName(),
+    //                 event.getId(),
+    //                 surveyToken
+    //         );
+    //         jwtService.generateSurveyToken(user , member);
+    //     } catch (Exception e) {
+    //         log.error("Error creating token for user {}", member.getUser().getEmail(), e);
+    //     }
+    // }
 
     private boolean shouldSendEmail(MemberEvent member, boolean hasVisitor, boolean hasExhibitor) {
         return (member.getEventRole() == MemberEventRole.VISITOR && hasVisitor) ||
