@@ -76,4 +76,7 @@ public class MemberEvent {
     // @LastModifiedDate
     @Column(name = "CHECK_IN_AT", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "SENDEMAIL")
+    private Integer sendEmail;
 }

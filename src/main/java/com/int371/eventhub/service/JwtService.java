@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.User;
 
 import io.jsonwebtoken.Claims;
@@ -39,8 +40,8 @@ public class JwtService {
     public String generateToken(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("userId", user.getId());
-        extraClaims.put("firstName", user.getFirstName());
-        extraClaims.put("role", user.getRole().name());
+        // extraClaims.put("firstName", user.getFirstName());
+        extraClaims.put("accountRole", user.getRole().name());
         extraClaims.put("tokenRole", user.getRole().name()); 
 
         return Jwts.builder()
@@ -52,11 +53,13 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateSurveyToken(User user) {
+    public String generateSurveyToken(User user ,MemberEvent mu) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("userId", user.getId());
-        extraClaims.put("firstName", user.getFirstName());
-        extraClaims.put("role", user.getRole().name());
+        // extraClaims.put("firstName", user.getFirstName());
+        extraClaims.put("eventId", mu.getEvent().getId());
+        extraClaims.put("roleInEvent", mu.getEventRole());
+        extraClaims.put("accountRole", user.getRole());
         extraClaims.put("tokenRole", "SURVEY_GUEST"); 
         extraClaims.put("isRestricted", true);
 
@@ -83,7 +86,7 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()

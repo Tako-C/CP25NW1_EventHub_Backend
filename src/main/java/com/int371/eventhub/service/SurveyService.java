@@ -40,7 +40,6 @@ import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.QuestionRepository;
 import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.repository.SurveyRepository;
-import com.int371.eventhub.repository.SurveyTokenRepository;
 import com.int371.eventhub.repository.UserRepository;
 
 @Service
@@ -66,9 +65,6 @@ public class SurveyService {
 
     @Autowired
     private ResponseAnswerRepository responseAnswerRepository;
-
-    @Autowired
-    private SurveyTokenRepository surveyTokenRepository;
 
     private static final int MAX_PRE_SURVEY_QUESTIONS = 5;
     private static final int MAX_POST_SURVEY_QUESTIONS = 10;
@@ -471,14 +467,6 @@ public class SurveyService {
         }
 
         responseAnswerRepository.saveAll(answersToSave);
-
-        if (survey.getType() == SurveyType.POST_VISITOR || survey.getType() == SurveyType.POST_EXHIBITOR) {
-            Optional<SurveyToken> surveyToken = surveyTokenRepository.findByUserIdAndEventId(memberEvent.getUser().getId(),
-                    memberEvent.getEvent().getId());
-            if (surveyToken.isPresent()) {
-                surveyTokenRepository.setTokenAsUsed(surveyToken.get().getToken());
-            }
-        } 
 
     }
 

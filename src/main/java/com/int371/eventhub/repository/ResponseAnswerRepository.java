@@ -8,4 +8,5 @@ import com.int371.eventhub.entity.Survey;
 
 public interface ResponseAnswerRepository extends JpaRepository<ResponseAnswer, Long> {
     boolean existsByMemberEventAndQuestion_Survey(MemberEvent memberEvent, Survey survey);
+    boolean existsByMemberEventId(Integer memberEventId);
 }

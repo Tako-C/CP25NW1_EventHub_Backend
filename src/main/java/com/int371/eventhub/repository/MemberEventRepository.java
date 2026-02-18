@@ -70,4 +70,6 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
             "u.phone = :query OR " +
             "LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<MemberEvent> searchVisitorsFlexibly(@Param("eventId") Integer eventId, @Param("query") String query);
+
+    List<MemberEvent> findByEventIdAndSendEmail(Integer eventId, Integer sendEmail);
 }
