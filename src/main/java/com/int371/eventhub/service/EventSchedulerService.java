@@ -31,30 +31,30 @@ public class EventSchedulerService {
 
     @Autowired
     private EventRepository eventRepository;
-
     @Autowired
     private MemberEventRepository memberEventRepository;
-
     @Autowired
     private SurveyRepository surveyRepository;
-
     @Autowired
-    private SurveyTokenRepository surveyTokenRepository; // เพิ่มตัวนี้
-
+    private SurveyTokenRepository surveyTokenRepository;
     @Autowired
     private EmailService emailService;
 
-    @Scheduled(fixedRate = 60000) // run every 1 minute
-    @Transactional
+    @Scheduled(fixedRate = 60000)
+    // ลบ @Transactional ออกจากที่นี่ เพื่อไม่ให้ Lock DB นานเกินไปตอนส่งเมล
     public void updateEventStatus() {
         LocalDateTime now = LocalDateTime.now();
-
         log.info("Current Server Time: {}", now);
+
+        // ส่วนที่ 1 & 2: อัปเดตสถานะ (แยกเป็นอีก method ที่มี @Transactional)
+        processStatusUpdates(now);
+    }
+
+    @Transactional
+    public void processStatusUpdates(LocalDateTime now) {
         // 1. UPCOMING -> ONGOING
-        // Find UPCOMING events that defined start date is passed
         List<Event> upcomingToOngoing = eventRepository.findAllByStartDateBeforeAndStatus(now, EventStatus.UPCOMING);
         if (!upcomingToOngoing.isEmpty()) {
-            log.info("Found {} events to start (UPCOMING -> ONGOING)", upcomingToOngoing.size());
             upcomingToOngoing.forEach(e -> e.setStatus(EventStatus.ONGOING));
             eventRepository.saveAll(upcomingToOngoing);
         }
@@ -64,116 +64,73 @@ public class EventSchedulerService {
         List<Event> expiredEvents = eventRepository.findAllByEndDateBeforeAndStatusIn(now, activeStatuses);
 
         if (!expiredEvents.isEmpty()) {
-            log.info("Found {} events to update to FINISHED", expiredEvents.size());
             for (Event event : expiredEvents) {
                 event.setStatus(EventStatus.FINISHED);
             }
             eventRepository.saveAll(expiredEvents);
-            log.info("Updated {} events to FINISHED", expiredEvents.size());
-
-            // 3. Send Post-Survey Email
+            
+            // ส่งเมล (อยู่นอก Transaction หลักของสถานะอีเวนต์จะดีกว่า หรือเรียกแยก)
             for (Event event : expiredEvents) {
                 sendPostSurveyEmails(event);
             }
         }
     }
 
-    // private void sendPostSurveyEmails(Event event) {
-    //     try {
-    //         List<MemberEvent> members = memberEventRepository.findByEventId(event.getId());
-    //         List<Survey> surveys = surveyRepository.findByEventIdAndStatus(event.getId(), SurveyStatus.ACTIVE);
-
-    //         // Check if surveys exist
-    //         boolean hasVisitorSurvey = false;
-    //         boolean hasExhibitorSurvey = false;
-
-    //         for (Survey s : surveys) {
-    //             if (s.getType() == SurveyType.POST_VISITOR) {
-    //                 hasVisitorSurvey = true;
-    //             } else if (s.getType() == SurveyType.POST_EXHIBITOR) {
-    //                 hasExhibitorSurvey = true;
-    //             }
-    //         }
-
-    //         for (MemberEvent member : members) {
-    //             boolean shouldSend = false;
-    //             if (member.getEventRole() == MemberEventRole.VISITOR && hasVisitorSurvey) {
-    //                 shouldSend = true;
-    //             } else if (member.getEventRole() == MemberEventRole.EXHIBITOR && hasExhibitorSurvey) {
-    //                 shouldSend = true;
-    //             }
-
-    //             if (shouldSend) {
-    //                 emailService.sendPostSurveyEmail(
-    //                         member.getUser().getEmail(),
-    //                         member.getUser().getFirstName(),
-    //                         event.getEventName(),
-    //                         event.getId(),
-    //                         member.getUser().getId());
-    //             }
-    //         }
-    //     } catch (Exception e) {
-    //         log.error("Failed to send post-survey emails for event {}", event.getId(), e);
-    //     }
-    // }
-
     private void sendPostSurveyEmails(Event event) {
         try {
             List<MemberEvent> members = memberEventRepository.findByEventId(event.getId());
             List<Survey> surveys = surveyRepository.findByEventIdAndStatus(event.getId(), SurveyStatus.ACTIVE);
 
-            boolean hasVisitorSurvey = false;
-            boolean hasExhibitorSurvey = false;
-
-            for (Survey s : surveys) {
-                if (s.getType() == SurveyType.POST_VISITOR) {
-                    hasVisitorSurvey = true;
-                } else if (s.getType() == SurveyType.POST_EXHIBITOR) {
-                    hasExhibitorSurvey = true;
-                }
-            }
+            // ตรวจสอบว่ามี Post-Survey ไหม
+            boolean hasVisitorSurvey = surveys.stream().anyMatch(s -> s.getType() == SurveyType.POST_VISITOR);
+            boolean hasExhibitorSurvey = surveys.stream().anyMatch(s -> s.getType() == SurveyType.POST_EXHIBITOR);
 
             for (MemberEvent member : members) {
-                boolean shouldSend = false;
-                if (member.getEventRole() == MemberEventRole.VISITOR && hasVisitorSurvey) {
-                    shouldSend = true;
-                } else if (member.getEventRole() == MemberEventRole.EXHIBITOR && hasExhibitorSurvey) {
-                    shouldSend = true;
-                }
+                if (shouldSendEmail(member, hasVisitorSurvey, hasExhibitorSurvey)) {
+                    
 
-                if (shouldSend) {
                     Optional<SurveyToken> existingToken = surveyTokenRepository.findByUserIdAndEventId(
                         member.getUser().getId(), 
                         event.getId()
                     );
 
-                    // หากเคยมี Token แล้ว และถูกใช้ไปแล้ว (isUsed = true) ให้ข้ามคนนี้ไปเลย
-                    if (existingToken.isPresent() && existingToken.get().isUsed()) {
-                        log.info("ผู้ใช้ {} สำหรับกิจกรรม {} มี Token ที่ถูกใช้แล้ว ข้ามการส่งอีเมล", member.getUser().getEmail(), event.getId());
+                    if (existingToken.isPresent()) {
                         continue; 
                     }
-                    // --- เพิ่มขั้นตอนสร้าง Token ที่นี่ ---
-                    SurveyToken surveyToken = new SurveyToken();
-                    surveyToken.setUser(member.getUser());
-                    surveyToken.setEvent(event);
-                    surveyToken.setExpiryDate(LocalDateTime.now().plusDays(7)); // ลิงก์มีอายุ 7 วัน
-                    surveyToken.setUsed(false);
-                    
-                    // บันทึกลง Oracle (จะได้รับ UUID อัตโนมัติ)
-                    surveyToken = surveyTokenRepository.save(surveyToken);
 
-                    // ส่งเมลโดยเปลี่ยนจาก userId เป็น token
-                    emailService.sendPostSurveyEmail(
-                            member.getUser().getEmail(),
-                            member.getUser().getFirstName(),
-                            event.getEventName(),
-                            event.getId(),
-                            surveyToken.getToken() // ใช้ UUID String
-                    );
+                    createNewTokenAndSendEmail(member, event);
                 }
             }
         } catch (Exception e) {
             log.error("Failed to send post-survey emails for event {}", event.getId(), e);
         }
+    }
+
+    @Transactional
+    protected void createNewTokenAndSendEmail(MemberEvent member, Event event) {
+        try {
+            SurveyToken surveyToken = new SurveyToken();
+            surveyToken.setUser(member.getUser());
+            surveyToken.setEvent(event);
+            surveyToken.setExpiryDate(LocalDateTime.now().plusDays(7));
+            surveyToken.setUsed(false);
+            
+            surveyToken = surveyTokenRepository.save(surveyToken);
+
+            emailService.sendPostSurveyEmail(
+                    member.getUser().getEmail(),
+                    member.getUser().getFirstName(),
+                    event.getEventName(),
+                    event.getId(),
+                    surveyToken.getToken()
+            );
+        } catch (Exception e) {
+            log.error("Error creating token for user {}", member.getUser().getEmail(), e);
+        }
+    }
+
+    private boolean shouldSendEmail(MemberEvent member, boolean hasVisitor, boolean hasExhibitor) {
+        return (member.getEventRole() == MemberEventRole.VISITOR && hasVisitor) ||
+               (member.getEventRole() == MemberEventRole.EXHIBITOR && hasExhibitor);
     }
 }

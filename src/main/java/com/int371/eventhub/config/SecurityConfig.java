@@ -48,15 +48,15 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
-                                                .requestMatchers(HttpMethod.POST, "/surveys/submit/**").hasAnyRole("USER", "SURVEY_GUEST")
+                                                .requestMatchers(HttpMethod.POST, "/surveys/submit/**").hasAnyRole("GENERAL_USER","ADMIN", "SURVEY_GUEST")
 
-                                                .requestMatchers("/users/**").hasRole("USER")
+                                                .requestMatchers("/users/**").hasAnyRole("GENERAL_USER","ADMIN")
 
-                                                .requestMatchers("/events/*/surveys/answers**").hasAnyRole("USER", "SURVEY_GUEST")
+                                                .requestMatchers("/events/*/surveys/answers**").hasAnyRole("GENERAL_USER","ADMIN", "SURVEY_GUEST")
 
-                                                .requestMatchers(HttpMethod.POST, "/events/*/register").hasRole("USER")
+                                                .requestMatchers(HttpMethod.POST, "/events/*/register").hasAnyRole("GENERAL_USER","ADMIN")
 
-                                                .requestMatchers("/upload/qr/**").hasRole("USER")
+                                                .requestMatchers("/upload/qr/**").hasAnyRole("GENERAL_USER","ADMIN")
                                                 .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
                                                 // .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
                                                 // .requestMatchers("/users/**").authenticated()
