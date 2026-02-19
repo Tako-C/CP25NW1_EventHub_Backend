@@ -57,7 +57,7 @@ public class SurveyTokenController {
             System.out.printf("claims",claims);
 
             // 3️⃣ ตรวจประเภท token
-            if (!"SURVEY_GUEST".equals(tokenRole)) {
+            if (!"SURVEY_GUEST".equals(tokenRole) || !"GENERAL_USER".equals(tokenRole) || !"ADMIN".equals(tokenRole)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ApiResponse<>(403, "ประเภท Token ไม่ถูกต้อง", null));
             }
@@ -90,10 +90,10 @@ public class SurveyTokenController {
 
             // 6️⃣ สร้าง Response DTO
             SurveyVerifyResponseDto data = new SurveyVerifyResponseDto();
-            data.setEventId(eventId);
-            data.setUserId(userId);
+            // data.setEventId(eventId);
+            // data.setUserId(userId);
             data.setEventRole(roleInEvent);
-            data.setAccessToken(token);
+            // data.setAccessToken(token);
 
             return ResponseEntity.ok(
                     new ApiResponse<>(200, "ตรวจสอบสถานะลิงก์สำเร็จ", data)

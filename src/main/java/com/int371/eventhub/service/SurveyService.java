@@ -31,7 +31,6 @@ import com.int371.eventhub.entity.QuestionType;
 import com.int371.eventhub.entity.ResponseAnswer;
 import com.int371.eventhub.entity.Survey;
 import com.int371.eventhub.entity.SurveyStatus;
-import com.int371.eventhub.entity.SurveyToken;
 import com.int371.eventhub.entity.SurveyType;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
