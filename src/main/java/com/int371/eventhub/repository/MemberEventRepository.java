@@ -8,7 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto;
+import org.springframework.data.domain.Pageable;
 import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.User;
@@ -72,4 +74,6 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
     List<MemberEvent> searchVisitorsFlexibly(@Param("eventId") Integer eventId, @Param("query") String query);
 
     List<MemberEvent> findByEventIdAndSendEmail(Integer eventId, Integer sendEmail);
+
+    List<MemberEvent> findByEventStatusAndSendEmailIn(EventStatus status, List<Integer> sendEmail, Pageable pageable);
 }

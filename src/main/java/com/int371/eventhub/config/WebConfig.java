@@ -15,7 +15,7 @@ public class WebConfig {
 
     @Value("${app.upload.base-path}")
     private String uploadPath;
-    
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
@@ -34,7 +34,7 @@ public class WebConfig {
                 String location = Paths.get(uploadPath).toUri().toString();
 
                 registry.addResourceHandler("/upload/**")
-                        .addResourceLocations(location); 
+                        .addResourceLocations(location);
             }
         };
     }
