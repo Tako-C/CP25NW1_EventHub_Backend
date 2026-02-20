@@ -56,11 +56,12 @@ public class SurveyTokenController {
 
                         System.out.printf("claims", claims);
 
-                        // 3️⃣ ตรวจประเภท token (Allow ONLY SURVEY_GUEST)
-                        if (!"SURVEY_GUEST".equals(tokenRole)) {
+                        // 3️⃣ ตรวจประเภท token (Allow SURVEY_GUEST, GENERAL_USER, ADMIN)
+                        if (!"SURVEY_GUEST".equals(tokenRole) && !"GENERAL_USER".equals(tokenRole)
+                                        && !"ADMIN".equals(tokenRole)) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                                 .body(new ApiResponse<>(403,
-                                                                "ไม่อนุญาตให้ใช้ Token นี้ (ต้องเป็น Survey Link เท่านั้น)",
+                                                                "ประเภท Token ไม่ถูกต้อง",
                                                                 null));
                         }
 
