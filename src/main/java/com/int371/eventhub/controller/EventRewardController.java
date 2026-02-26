@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,38 @@ public class EventRewardController {
                                 "Reward created successfully",
                                 createdReward);
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+
+        @PutMapping(value = "/{rewardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public ResponseEntity<ApiResponse<EventRewardResponseDto>> updateReward(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer rewardId,
+                        @ModelAttribute CreateEventRewardRequestDto request,
+                        Principal principal) {
+
+                EventRewardResponseDto updatedReward = eventRewardService.updateReward(eventId, rewardId, request,
+                                principal.getName());
+
+                ApiResponse<EventRewardResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Reward updated successfully",
+                                updatedReward);
+                return ResponseEntity.ok(response);
+        }
+
+        @DeleteMapping("/{rewardId}")
+        public ResponseEntity<ApiResponse<Void>> deleteReward(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer rewardId,
+                        Principal principal) {
+
+                eventRewardService.deleteReward(eventId, rewardId, principal.getName());
+
+                ApiResponse<Void> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Reward deleted successfully",
+                                null);
+                return ResponseEntity.ok(response);
         }
 
         @GetMapping("/organizer")
