@@ -186,6 +186,7 @@ public class EventRegistrationService {
 
             LocalDateTime now = LocalDateTime.now();
             registration.setRegisteredAt(now);
+            registration.setSendEmail(0);
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy'T'HH:mm");
             String formattedDate = registration.getRegisteredAt().format(formatter);

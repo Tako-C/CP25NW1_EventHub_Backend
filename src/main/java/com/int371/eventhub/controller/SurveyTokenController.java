@@ -4,7 +4,6 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.SurveyVerifyResponseDto;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.repository.MemberEventRepository;
-import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.service.JwtService;
 
 import io.jsonwebtoken.Claims;
@@ -28,9 +27,6 @@ public class SurveyTokenController {
 
         @Autowired
         private MemberEventRepository memberEventRepository;
-
-        @Autowired
-        private ResponseAnswerRepository responseAnswerRepository;
 
         @GetMapping("/verify")
         @Transactional(readOnly = true)
@@ -75,18 +71,17 @@ public class SurveyTokenController {
                                                 .body(new ApiResponse<>(404, "ไม่พบข้อมูลผู้เข้าร่วมงาน", claims));
                         }
 
-                        MemberEvent memberEvent = optionalMember.get();
-
                         // 5️⃣ เช็คว่าตอบแล้วหรือยัง
-                        boolean alreadyAnswered = responseAnswerRepository.existsByMemberEventId(memberEvent.getId());
-
-                        if (alreadyAnswered) {
-                                return ResponseEntity.status(HttpStatus.CONFLICT)
-                                                .body(new ApiResponse<>(
-                                                                409,
-                                                                "แบบสอบถามนี้ได้ถูกทำไปแล้ว",
-                                                                null));
-                        }
+                        // (ถูกนำออกเพื่อให้สามารถใช้ลิงก์ตอบแบบสอบถามชิ้นอื่นได้)
+                        // boolean alreadyAnswered =
+                        // responseAnswerRepository.existsByMemberEventId(memberEvent.getId());
+                        // if (alreadyAnswered) {
+                        // return ResponseEntity.status(HttpStatus.CONFLICT)
+                        // .body(new ApiResponse<>(
+                        // 409,
+                        // "แบบสอบถามนี้ได้ถูกทำไปแล้ว",
+                        // null));
+                        // }
 
                         // 6️⃣ สร้าง Response DTO
                         SurveyVerifyResponseDto data = new SurveyVerifyResponseDto();

@@ -23,7 +23,7 @@ import lombok.Data;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "USER_EVENTS", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"USER_ID", "EVENT_ID"})
+        @UniqueConstraint(columnNames = { "USER_ID", "EVENT_ID" })
 })
 public class MemberEvent {
 
@@ -50,11 +50,11 @@ public class MemberEvent {
     @Column(name = "EVENT_ROLE", nullable = false)
     private MemberEventRole eventRole;
 
-    @Column(name = "PRE_SURVEY_POINT")
-    private Integer preSurveyPoint;
+    // @Column(name = "PRE_SURVEY_POINT")
+    // private Integer preSurveyPoint;
 
-    @Column(name = "POST_SURVEY_POINT")
-    private Integer postSurveyPoint;
+    // @Column(name = "POST_SURVEY_POINT")
+    // private Integer postSurveyPoint;
 
     @Column(name = "IMG_PATH_QR")
     private String imgPathQr;
@@ -79,4 +79,10 @@ public class MemberEvent {
 
     @Column(name = "SENDEMAIL")
     private Integer sendEmail;
+
+    @Column(name = "DONE_PRE_SURVEY", columnDefinition = "INT DEFAULT 0")
+    private Integer donePreSurvey;
+
+    @Column(name = "DONE_POST_SURVEY", columnDefinition = "INT DEFAULT 0")
+    private Integer donePostSurvey;
 }

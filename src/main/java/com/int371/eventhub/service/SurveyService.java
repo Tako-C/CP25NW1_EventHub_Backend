@@ -466,6 +466,15 @@ public class SurveyService {
 
         responseAnswerRepository.saveAll(answersToSave);
 
+        // --- NEW LOGIC: Update donePreSurvey or donePostSurvey ---
+        if (surveyType == SurveyType.PRE_VISITOR || surveyType == SurveyType.PRE_EXHIBITOR) {
+            memberEvent.setDonePreSurvey(1);
+        } else if (surveyType == SurveyType.POST_VISITOR || surveyType == SurveyType.POST_EXHIBITOR) {
+            memberEvent.setDonePostSurvey(1);
+        }
+        memberEventRepository.save(memberEvent);
+        // ---------------------------------------------------------
+
     }
 
     // Helper Method
