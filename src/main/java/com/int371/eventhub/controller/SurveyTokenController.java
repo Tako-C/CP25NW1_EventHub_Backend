@@ -4,6 +4,7 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.SurveyVerifyResponseDto;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.repository.MemberEventRepository;
+import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.service.JwtService;
 
 import io.jsonwebtoken.Claims;
@@ -27,6 +28,9 @@ public class SurveyTokenController {
 
         @Autowired
         private MemberEventRepository memberEventRepository;
+
+        @Autowired
+        private ResponseAnswerRepository responseAnswerRepository;
 
         @GetMapping("/verify")
         @Transactional(readOnly = true)
@@ -53,8 +57,7 @@ public class SurveyTokenController {
                         System.out.printf("claims", claims);
 
                         // 3️⃣ ตรวจประเภท token (Allow SURVEY_GUEST, GENERAL_USER, ADMIN)
-                        if (!"SURVEY_GUEST".equals(tokenRole) && !"GENERAL_USER".equals(tokenRole)
-                                        && !"ADMIN".equals(tokenRole)) {
+                        if (!"SURVEY_GUEST".equals(tokenRole)) {
                                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                                 .body(new ApiResponse<>(403,
                                                                 "ประเภท Token ไม่ถูกต้อง",

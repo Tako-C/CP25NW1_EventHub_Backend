@@ -17,6 +17,7 @@ import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.RewardStatus;
 import com.int371.eventhub.entity.User;
+import com.int371.eventhub.entity.UserReward;
 import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.EventRewardRepository;
@@ -402,6 +403,56 @@ public class EventRewardService {
                                 .toList();
         }
 
+        @Transactional(readOnly = true)
+        public List<EventRewardResponseDto> getAllRewards() {
+                List<EventReward> rewards = eventRewardRepository.findAll();
+                return rewards.stream()
+                                .map(reward -> {
+                                        EventRewardResponseDto dto = modelMapper.map(reward,
+                                                        EventRewardResponseDto.class);
+                                        dto.setEventId(reward.getEvent().getId());
+
+                                        // ดึงภาพของรางวัลจากตาราง IMAGES (EventImage) ผ่าน Event
+                                        String expectedPattern = "_reward_" + reward.getId() + ".";
+                                        reward.getEvent().getImages().stream()
+                                                        .filter(img -> img.getCategory().getCategoryName()
+                                                                        .equalsIgnoreCase("reward"))
+                                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                                        .findFirst()
+                                                        .ifPresent(img -> dto.setImagePath(img.getImgPathEv()));
+
+                                        return dto;
+                                })
+                                .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<EventRewardResponseDto> getRewardsByUserId(Integer userId) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new ResourceNotFoundException("ไม่พบผู้ใช้ที่มี ID: " + userId));
+
+                List<UserReward> userRewards = userRewardRepository.findByUserId(user.getId());
+                return userRewards.stream()
+                                .map(ur -> {
+                                        EventReward reward = ur.getEventReward();
+                                        EventRewardResponseDto dto = modelMapper.map(reward,
+                                                        EventRewardResponseDto.class);
+                                        dto.setEventId(reward.getEvent().getId());
+
+                                        // ดึงภาพของรางวัลจากตาราง IMAGES (EventImage) ผ่าน Event
+                                        String expectedPattern = "_reward_" + reward.getId() + ".";
+                                        reward.getEvent().getImages().stream()
+                                                        .filter(img -> img.getCategory().getCategoryName()
+                                                                        .equalsIgnoreCase("reward"))
+                                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                                        .findFirst()
+                                                        .ifPresent(img -> dto.setImagePath(img.getImgPathEv()));
+
+                                        return dto;
+                                })
+                                .toList();
+        }
+        
         @Transactional
         public String redeemReward(com.int371.eventhub.dto.RedeemRewardRequest request) {
                 User user = userRepository.findById(request.getUserId())

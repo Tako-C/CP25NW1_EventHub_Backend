@@ -44,9 +44,15 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register/otp/verify")
                                                 .permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**","/api/events/**")
+                                                .requestMatchers(HttpMethod.GET, "/events/rewards")
                                                 .permitAll()
 
+                                                .requestMatchers("/events/*/rewards/**").hasAnyRole("GENERAL_USER", "ADMIN")
+
+                                                .requestMatchers("/events/rewards/**").hasAnyRole("GENERAL_USER", "ADMIN") 
+
+                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**", "/api/events/**").permitAll()
+                                                
                                                 // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/surveys/submit/**").hasAnyRole("GENERAL_USER","ADMIN", "SURVEY_GUEST")
 
@@ -57,7 +63,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register").hasAnyRole("GENERAL_USER","ADMIN")
 
                                                 .requestMatchers("/upload/qr/**").hasAnyRole("GENERAL_USER","ADMIN")
-                                                .requestMatchers(HttpMethod.GET, "/upload/**").permitAll()
+                                                
                                                 // .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
                                                 // .requestMatchers("/users/**").authenticated()
                                                 .anyRequest().authenticated())

@@ -1,6 +1,7 @@
 package com.int371.eventhub.controller;
 
 import java.security.Principal;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,15 +21,17 @@ import com.int371.eventhub.dto.CreateEventRewardRequestDto;
 import com.int371.eventhub.dto.EventRewardResponseDto;
 import com.int371.eventhub.dto.RedeemRewardRequest;
 import com.int371.eventhub.service.EventRewardService;
+// import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
-@RequestMapping("/events/{eventId}/rewards")
+@RequestMapping("/events")
 public class EventRewardController {
 
         @Autowired
         private EventRewardService eventRewardService;
 
-        @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/{eventId}/rewards", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<EventRewardResponseDto>> createReward(
                         @PathVariable Integer eventId,
                         @ModelAttribute CreateEventRewardRequestDto request,
@@ -44,7 +47,7 @@ public class EventRewardController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
-        @PutMapping(value = "/{rewardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PutMapping(value = "/{eventId}/rewards/{rewardId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<ApiResponse<EventRewardResponseDto>> updateReward(
                         @PathVariable Integer eventId,
                         @PathVariable Integer rewardId,
@@ -61,7 +64,7 @@ public class EventRewardController {
                 return ResponseEntity.ok(response);
         }
 
-        @DeleteMapping("/{rewardId}")
+        @DeleteMapping("/{eventId}/rewards/{rewardId}")
         public ResponseEntity<ApiResponse<Void>> deleteReward(
                         @PathVariable Integer eventId,
                         @PathVariable Integer rewardId,
@@ -76,7 +79,7 @@ public class EventRewardController {
                 return ResponseEntity.ok(response);
         }
 
-        @GetMapping("/organizer")
+        @GetMapping("/{eventId}/rewards/organizer")
         public ResponseEntity<ApiResponse<java.util.List<EventRewardResponseDto>>> getRewardsForOrganizer(
                         @PathVariable Integer eventId,
                         Principal principal) {
@@ -91,7 +94,20 @@ public class EventRewardController {
                 return ResponseEntity.ok(response);
         }
 
-        @GetMapping("/visitor")
+        @GetMapping("/rewards")
+        public ResponseEntity<ApiResponse<java.util.List<EventRewardResponseDto>>> getAllRewards(
+                        Principal principal) {
+
+                java.util.List<EventRewardResponseDto> data = eventRewardService.getAllRewards();
+
+                ApiResponse<java.util.List<EventRewardResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "All rewards fetched successfully",
+                                data);
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/{eventId}/rewards/visitor")
         public ResponseEntity<ApiResponse<java.util.List<EventRewardResponseDto>>> getRewardsForVisitor(
                         @PathVariable Integer eventId,
                         Principal principal) {
@@ -106,7 +122,21 @@ public class EventRewardController {
                 return ResponseEntity.ok(response);
         }
 
-        @PostMapping("/redeem")
+        @GetMapping("/rewards/{userId}")
+        public ResponseEntity<ApiResponse<List<EventRewardResponseDto>>> getRewardsByUserId(
+                        @PathVariable Integer userId,
+                        Principal principal) {
+
+                java.util.List<EventRewardResponseDto> data = eventRewardService.getRewardsByUserId(userId);
+
+                ApiResponse<java.util.List<EventRewardResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "User rewards fetched successfully",
+                                data);
+                return ResponseEntity.ok(response);
+        }
+
+        @PostMapping("/{eventId}/rewards/redeem")
         public ResponseEntity<ApiResponse<String>> redeemReward(
                         @PathVariable Integer eventId,
                         @org.springframework.web.bind.annotation.RequestBody RedeemRewardRequest request) {
