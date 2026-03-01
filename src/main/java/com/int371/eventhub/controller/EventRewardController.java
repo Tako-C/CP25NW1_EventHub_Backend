@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.CreateEventRewardRequestDto;
 import com.int371.eventhub.dto.EventRewardResponseDto;
+import com.int371.eventhub.dto.RedeemRewardRequest;
 import com.int371.eventhub.service.EventRewardService;
 
 @RestController
@@ -102,6 +103,20 @@ public class EventRewardController {
                                 HttpStatus.OK.value(),
                                 "Visitor rewards fetched successfully",
                                 data);
+                return ResponseEntity.ok(response);
+        }
+
+        @PostMapping("/redeem")
+        public ResponseEntity<ApiResponse<String>> redeemReward(
+                        @PathVariable Integer eventId,
+                        @org.springframework.web.bind.annotation.RequestBody RedeemRewardRequest request) {
+
+                String message = eventRewardService.redeemReward(request);
+
+                ApiResponse<String> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                message,
+                                null);
                 return ResponseEntity.ok(response);
         }
 }

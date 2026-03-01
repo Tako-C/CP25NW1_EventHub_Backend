@@ -14,6 +14,7 @@ import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventReward;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.RewardStatus;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
@@ -22,6 +23,7 @@ import com.int371.eventhub.repository.EventRewardRepository;
 import com.int371.eventhub.repository.ImageCategoryRepository;
 import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
+import com.int371.eventhub.repository.UserRewardRepository;
 import com.int371.eventhub.entity.EventImage;
 import com.int371.eventhub.entity.ImageCategory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +55,9 @@ public class EventRewardService {
 
         @Autowired
         private ImageCategoryRepository categoryRepository;
+
+        @Autowired
+        private UserRewardRepository userRewardRepository;
 
         @Value("${app.event-image.storage-path}")
         private String uploadBaseDir;
@@ -395,5 +400,81 @@ public class EventRewardService {
                                         return dto;
                                 })
                                 .toList();
+        }
+
+        @Transactional
+        public String redeemReward(com.int371.eventhub.dto.RedeemRewardRequest request) {
+                User user = userRepository.findById(request.getUserId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "User not found with id: " + request.getUserId()));
+
+                EventReward reward = eventRewardRepository.findById(request.getEventRewardId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Reward not found with id: " + request.getEventRewardId()));
+
+                // ตรวจสอบว่า User ลงทะเบียนเข้างานนี้หรือไม่
+                Event event = reward.getEvent();
+                MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user)
+                                .orElseThrow(() -> new AccessDeniedException(
+                                                "User is not registered for this event."));
+
+                // ตรวจสอบเงื่อนไขตาม RewardRequirementType
+                switch (reward.getRequirementType()) {
+                        case FREE:
+                                // แค่ลงทะเบียนเข้างานก็สามารถแลกได้
+                                break;
+                        case CHECKED_IN:
+                                if (memberEvent.getStatus() != MemberEventStatus.CHECK_IN) {
+                                        throw new IllegalArgumentException("User has not checked in to the event.");
+                                }
+                                break;
+                        case PRE_SURVEY_DONE:
+                                if (memberEvent.getDonePreSurvey() == null || memberEvent.getDonePreSurvey() != 1) {
+                                        throw new IllegalArgumentException("User has not completed the pre-survey.");
+                                }
+                                break;
+                        case POST_SURVEY_DONE:
+                                if (memberEvent.getDonePostSurvey() == null || memberEvent.getDonePostSurvey() != 1) {
+                                        throw new IllegalArgumentException("User has not completed the post-survey.");
+                                }
+                                break;
+                        default:
+                                throw new IllegalArgumentException("Unknown reward requirement type.");
+                }
+
+                if (reward.getStatus() != RewardStatus.ACTIVE) {
+                        throw new IllegalArgumentException("This reward is not currently active.");
+                }
+
+                if (reward.getQuantity() != null && reward.getQuantity() <= 0) {
+                        throw new IllegalArgumentException("This reward is out of stock.");
+                }
+
+                LocalDateTime now = LocalDateTime.now();
+                if (reward.getStartRedeemAt() != null && now.isBefore(reward.getStartRedeemAt())) {
+                        throw new IllegalArgumentException("Reward redemption has not started yet.");
+                }
+                if (reward.getEndRedeemAt() != null && now.isAfter(reward.getEndRedeemAt())) {
+                        throw new IllegalArgumentException("Reward redemption period has ended.");
+                }
+
+                if (userRewardRepository.existsByUserAndEventReward(user, reward)) {
+                        throw new IllegalArgumentException("User has already redeemed this reward.");
+                }
+
+                if (reward.getQuantity() != null) {
+                        reward.setQuantity(reward.getQuantity() - 1);
+                        if (reward.getQuantity() == 0) {
+                                reward.setStatus(RewardStatus.OUT_OF_STOCK);
+                        }
+                        eventRewardRepository.save(reward);
+                }
+
+                com.int371.eventhub.entity.UserReward userReward = new com.int371.eventhub.entity.UserReward();
+                userReward.setUser(user);
+                userReward.setEventReward(reward);
+                userRewardRepository.save(userReward);
+
+                return "Redeemed successfully";
         }
 }
