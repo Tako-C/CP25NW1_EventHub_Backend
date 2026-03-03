@@ -1,5 +1,6 @@
 package com.int371.eventhub.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -54,6 +55,12 @@ public class User implements UserDetails {
     @Column(name = "PHONE")
     private String phone;
 
+    @Column(name = "DATE_OF_BIRTH")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "GENDER", length = 1)
+    private String gender;
+
     @ManyToOne
     @JoinColumn(name = "JOB_ID")
     private Job job;
@@ -92,7 +99,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-    return List.of(new SimpleGrantedAuthority(role.name()));
+        return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override

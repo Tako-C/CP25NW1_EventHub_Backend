@@ -78,11 +78,11 @@ public class MemberEvent {
     private LocalDateTime updatedAt;
 
     @Column(name = "SENDEMAIL")
-    private Integer sendEmail;
+    private Integer sendEmail = 0;
 
     @Column(name = "DONE_PRE_SURVEY", columnDefinition = "INT DEFAULT 0")
-    private Integer donePreSurvey;
+    private Integer donePreSurvey = 0;
 
     @Column(name = "DONE_POST_SURVEY", columnDefinition = "INT DEFAULT 0")
-    private Integer donePostSurvey;
+    private Integer donePostSurvey = 0;
 }

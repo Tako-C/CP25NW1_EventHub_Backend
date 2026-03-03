@@ -46,12 +46,13 @@ public class OtpService {
             throw new IllegalArgumentException("Error: Email is already registered!");
         }
         String otp = generateAndSendOtpLogic(email, registrationCooldownCache);
-        OtpData otpData = new OtpData(otp, request.getFirstName(), request.getLastName(), request.getPassword());
+        OtpData otpData = new OtpData(otp, request.getFirstName(), request.getLastName(), request.getPassword(),
+                request.getDateOfBirth(), request.getGender());
 
         registrationOtpCache.put(email, otpData);
     }
 
-        public void generateAndSendLoginOtp(String email) {
+    public void generateAndSendLoginOtp(String email) {
         if (!userRepository.existsByEmail(email)) {
             throw new ResourceNotFoundException("User with this email not found.");
         }
@@ -63,7 +64,8 @@ public class OtpService {
         OtpData storedOtpData = registrationOtpCache.get(request.getEmail(), OtpData.class);
 
         if (storedOtpData == null) {
-            throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
+            throw new IllegalArgumentException(
+                    "Verification failed. No OTP was requested for this email or the OTP has expired.");
         }
 
         if (!storedOtpData.getOtp().equals(request.getOtp())) {
@@ -78,7 +80,8 @@ public class OtpService {
         String storedOtp = loginOtpCache.get(email, String.class);
 
         if (storedOtp == null) {
-            throw new IllegalArgumentException("Verification failed. No OTP was requested for this email or the OTP has expired.");
+            throw new IllegalArgumentException(
+                    "Verification failed. No OTP was requested for this email or the OTP has expired.");
         }
 
         if (!storedOtp.equals(otp)) {
@@ -89,7 +92,8 @@ public class OtpService {
 
     private String generateAndSendOtpLogic(String email, org.springframework.cache.Cache cooldownCache) {
         String timeText = "1 minute";
-        if ("forgotPasswordCooldown".equals(cooldownCache.getName()) || "forgotPasswordOtp".equals(cooldownCache.getName())) {
+        if ("forgotPasswordCooldown".equals(cooldownCache.getName())
+                || "forgotPasswordOtp".equals(cooldownCache.getName())) {
             timeText = "5 minutes";
         }
 
@@ -107,11 +111,13 @@ public class OtpService {
         }
         return otp;
     }
+
     // 1. สร้างและส่ง OTP สำหรับ Forgot Password
     public void generateAndSendForgotPasswordOtp(String email) {
         // ตรวจสอบก่อนว่ามี User นี้จริงไหม (กันคนแกล้งส่งมั่ว)
         if (!userRepository.existsByEmail(email)) {
-            // อาจจะ throw exception หรือแค่ return เพื่อไม่ให้ hacker รู้ว่าอีเมลนี้ไม่มีจริง
+            // อาจจะ throw exception หรือแค่ return เพื่อไม่ให้ hacker
+            // รู้ว่าอีเมลนี้ไม่มีจริง
             throw new ResourceNotFoundException("User with this email not found.");
         }
         // ใช้ logic กลางที่คุณทำไว้ (ได้ทั้ง OTP และจัดการ Cooldown 1 นาที)

@@ -107,6 +107,8 @@ public class EventRegistrationService {
             registerRequest.setFirstName(request.getFirstName());
             registerRequest.setLastName(request.getLastName());
             registerRequest.setPassword(randomPassword);
+            registerRequest.setDateOfBirth(request.getDateOfBirth());
+            registerRequest.setGender(request.getGender() != null ? request.getGender() : "N");
 
             otpService.generateAndSendOtp(registerRequest);
             return "Registration OTP has been sent to your email.";
@@ -168,6 +170,9 @@ public class EventRegistrationService {
             String qrCodeUrl = registerUserForEvent(registeredUser, event);
             String token = jwtService.generateToken(registeredUser);
 
+            // ส่ง welcome email หลังจากทุกอย่างสำเร็จแล้ว (สร้าง user + QR code)
+            authService.sendWelcomeEmailAfterRegistration(registeredUser, storedRegisterData.getPassword(), true);
+
             return EventRegisterResponseDto.builder()
                     .message("New user registered and event registration successful.")
                     .token(token)
@@ -210,7 +215,7 @@ public class EventRegistrationService {
             return urlPath;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate or save QR code: " + e.getMessage(), e);
+            throw new IllegalArgumentException("Failed to generate or save QR code: " + e.getMessage(), e);
         }
     }
 

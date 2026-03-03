@@ -1,6 +1,8 @@
 package com.int371.eventhub.dto;
 
 import lombok.Data;
+import java.time.LocalDate;
+import jakarta.validation.constraints.Pattern;
 
 @Data
 public class EditUserProfileRequestDto {
@@ -13,4 +15,8 @@ public class EditUserProfileRequestDto {
     private CountryDto country;
     private CityDto city;
     private String postCode;
+    private LocalDate dateOfBirth;
+
+    @Pattern(regexp = "^[MFUN]$", message = "Gender must be M (Male), F (Female), U (Unknown), or N (Not specified)")
+    private String gender;
 }

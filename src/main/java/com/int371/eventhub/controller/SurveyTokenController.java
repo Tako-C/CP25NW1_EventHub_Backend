@@ -4,7 +4,6 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.SurveyVerifyResponseDto;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.repository.MemberEventRepository;
-import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.service.JwtService;
 
 import io.jsonwebtoken.Claims;
@@ -28,9 +27,6 @@ public class SurveyTokenController {
 
         @Autowired
         private MemberEventRepository memberEventRepository;
-
-        @Autowired
-        private ResponseAnswerRepository responseAnswerRepository;
 
         @GetMapping("/verify")
         @Transactional(readOnly = true)

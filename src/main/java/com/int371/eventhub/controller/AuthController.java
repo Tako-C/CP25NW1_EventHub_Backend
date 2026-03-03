@@ -39,19 +39,20 @@ public class AuthController {
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "OTP has been sent to your email.",
-                otpRequest.getEmail()
-        );
+                otpRequest.getEmail());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register/otp/verify")
-    public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(@Valid @RequestBody RegisterOtpVerifyRequestDto verificationRequest) {
+    public ResponseEntity<ApiResponse<String>> verifyOtpAndRegister(
+            @Valid @RequestBody RegisterOtpVerifyRequestDto verificationRequest) {
         User registeredUser = authService.registerWithOtp(verificationRequest, false);
+        // ส่ง welcome email หลังจากสร้าง user สำเร็จแล้ว
+        authService.sendWelcomeEmailAfterRegistration(registeredUser, null, false);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "User registered successfully via OTP!",
-                registeredUser.getEmail()
-        );
+                registeredUser.getEmail());
         return ResponseEntity.ok(response);
     }
 
@@ -61,8 +62,7 @@ public class AuthController {
         ApiResponse<JwtResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Login successful!",
-                new JwtResponse(token)
-        );
+                new JwtResponse(token));
         return ResponseEntity.ok(response);
     }
 
@@ -72,19 +72,18 @@ public class AuthController {
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "A login OTP has been sent to your email.",
-                request.getEmail()
-        );
+                request.getEmail());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login/otp/verify")
-    public ResponseEntity<ApiResponse<JwtResponse>> verifyLoginOtp(@Valid @RequestBody LoginOtpAndEventRegisterVerifyRequestDto request) {
+    public ResponseEntity<ApiResponse<JwtResponse>> verifyLoginOtp(
+            @Valid @RequestBody LoginOtpAndEventRegisterVerifyRequestDto request) {
         String token = authService.loginWithOtp(request);
         ApiResponse<JwtResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Login successful!",
-                new JwtResponse(token)
-        );
+                new JwtResponse(token));
         return ResponseEntity.ok(response);
     }
 
