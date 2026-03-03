@@ -398,6 +398,18 @@ public class EventRewardService {
                                                         .findFirst()
                                                         .ifPresent(img -> dto.setImagePath(img.getImgPathEv()));
 
+                                        // ตรวจสอบสิทธิ์ตาม requirementType
+                                        boolean eligible = switch (reward.getRequirementType()) {
+                                                case FREE -> true;
+                                                case CHECKED_IN ->
+                                                        memberEvent.getStatus() == MemberEventStatus.CHECK_IN;
+                                                case PRE_SURVEY_DONE -> memberEvent.getDonePreSurvey() != null
+                                                                && memberEvent.getDonePreSurvey() == 1;
+                                                case POST_SURVEY_DONE -> memberEvent.getDonePostSurvey() != null
+                                                                && memberEvent.getDonePostSurvey() == 1;
+                                        };
+                                        dto.setEligible(eligible);
+
                                         return dto;
                                 })
                                 .toList();
@@ -452,7 +464,7 @@ public class EventRewardService {
                                 })
                                 .toList();
         }
-        
+
         @Transactional
         public String redeemReward(com.int371.eventhub.dto.RedeemRewardRequest request) {
                 User user = userRepository.findById(request.getUserId())

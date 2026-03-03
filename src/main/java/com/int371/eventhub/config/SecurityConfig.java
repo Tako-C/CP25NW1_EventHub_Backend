@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -47,24 +49,32 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/events/rewards")
                                                 .permitAll()
 
-                                                .requestMatchers("/events/*/rewards/**").hasAnyRole("GENERAL_USER", "ADMIN")
+                                                .requestMatchers("/events/*/rewards/**")
+                                                .hasAnyRole("GENERAL_USER", "ADMIN")
 
-                                                .requestMatchers("/events/rewards/**").hasAnyRole("GENERAL_USER", "ADMIN") 
+                                                .requestMatchers("/events/rewards/**")
+                                                .hasAnyRole("GENERAL_USER", "ADMIN")
 
-                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**", "/api/events/**").permitAll()
-                                                
+                                                .requestMatchers(HttpMethod.GET, "/events/**", "/event/**",
+                                                                "/api/events/**")
+                                                .permitAll()
+
                                                 // .requestMatchers(HttpMethod.GET, "/checkins").permitAll()
-                                                .requestMatchers(HttpMethod.POST, "/surveys/submit/**").hasAnyRole("GENERAL_USER","ADMIN", "SURVEY_GUEST")
+                                                .requestMatchers(HttpMethod.POST, "/surveys/submit/**")
+                                                .hasAnyRole("GENERAL_USER", "ADMIN", "SURVEY_GUEST")
 
-                                                .requestMatchers("/users/**").hasAnyRole("GENERAL_USER","ADMIN")
+                                                .requestMatchers("/users/**").hasAnyRole("GENERAL_USER", "ADMIN")
 
-                                                .requestMatchers("/events/*/surveys/answers**").hasAnyRole("GENERAL_USER","ADMIN", "SURVEY_GUEST")
+                                                .requestMatchers("/events/*/surveys/answers**")
+                                                .hasAnyRole("GENERAL_USER", "ADMIN", "SURVEY_GUEST")
 
-                                                .requestMatchers(HttpMethod.POST, "/events/*/register").hasAnyRole("GENERAL_USER","ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/events/*/register")
+                                                .hasAnyRole("GENERAL_USER", "ADMIN")
 
-                                                .requestMatchers("/upload/qr/**").hasAnyRole("GENERAL_USER","ADMIN")
-                                                
-                                                // .requestMatchers(HttpMethod.POST, "/events/*/register").authenticated()
+                                                .requestMatchers("/upload/qr/**").hasAnyRole("GENERAL_USER", "ADMIN")
+
+                                                // .requestMatchers(HttpMethod.POST,
+                                                // "/events/*/register").authenticated()
                                                 // .requestMatchers("/users/**").authenticated()
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session

@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-//import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.time.LocalDate;
 
@@ -24,9 +24,10 @@ public class RegisterOtpRequestDto {
     @Size(min = 8, message = "Password must be at least 8 characters.")
     private String password;
 
-    // @NotNull(message = "Date of Birth is required.")
+    @NotNull(message = "Date of Birth is required.")
     private LocalDate dateOfBirth;
 
+    @NotBlank(message = "Gender is required.")
     @Pattern(regexp = "^[MFUN]$", message = "Gender must be M (Male), F (Female), U (Unknown), or N (Not specified)")
-    private String gender = "N";
+    private String gender;
 }

@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.int371.eventhub.dto.ApiResponse;
@@ -17,175 +18,208 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.Arrays;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Handler for ResourceNotFoundException (Code 404)
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<?>> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
+        // Handler for ResourceNotFoundException (Code 404)
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ResponseEntity<ApiResponse<?>> handleResourceNotFoundException(ResourceNotFoundException ex,
+                        HttpServletRequest request) {
 
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.NOT_FOUND.value(),
-                ex.getMessage(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(),
-                request.getRequestURI()
-        );
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.NOT_FOUND.value(),
+                                ex.getMessage(),
+                                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                                request.getRequestURI());
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
-
-    // Handler for Validation (Code 400)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidationExceptions(
-            MethodArgumentNotValidException ex, HttpServletRequest request) {
-
-        String errorMessage = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
-
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                errorMessage,
-                "Validation Failed",
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    // Handler for Exception ทั่วไป (Code 500)
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGenericException(Exception ex, HttpServletRequest request) {
-
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred",
-                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    // Handler for Bad Request (Code 400)
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
-
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
-                "Bad Request",
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    // Handler for RequestCooldownException (Code 429)
-    @ExceptionHandler(RequestCooldownException.class)
-    public ResponseEntity<ApiResponse<?>> handleRequestCooldownException(
-            RequestCooldownException ex, HttpServletRequest request) {
-
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.TOO_MANY_REQUESTS.value(), // 429
-                ex.getMessage(),
-                "Too Many Requests",
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.TOO_MANY_REQUESTS);
-    }
-
-    // Handler Invalid email or password (Code 401)
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<?>> handleBadCredentialsException(
-            BadCredentialsException ex, HttpServletRequest request) {
-
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.UNAUTHORIZED.value(), // 401
-                "Invalid email or password.",
-                "Unauthorized",
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
-
-    // Handler Token (Code 401)
-    @ExceptionHandler({MalformedJwtException.class, SignatureException.class, ExpiredJwtException.class})
-    public ResponseEntity<ApiResponse<?>> handleJwtAuthenticationException(
-            Exception ex, HttpServletRequest request) {
-
-        String message;
-        String error;
-
-        if (ex instanceof ExpiredJwtException) {
-            message = "Token has expired.";
-            error = "Token Expired";
-        } else {
-            message = "Token is invalid or malformed.";
-            error = "Invalid Token";
+                return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
         }
 
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.UNAUTHORIZED.value(),
-                message,
-                error,
-                request.getRequestURI()
-        );
+        // Handler for Validation (Code 400)
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ApiResponse<?>> handleValidationExceptions(
+                        MethodArgumentNotValidException ex, HttpServletRequest request) {
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-    }
+                String errorMessage = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
 
-    // Handler for missed request body (Code 400)
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<?>> handleHttpMessageNotReadable(
-            HttpMessageNotReadableException ex, HttpServletRequest request) {
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.BAD_REQUEST.value(),
+                                errorMessage,
+                                "Validation Failed",
+                                request.getRequestURI());
 
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                "Required request body is missing or malformed.",
-                "Bad Request",
-                request.getRequestURI()
-        );
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
+        // Handler for invalid enum values or type mismatch (Code 400)
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+        public ResponseEntity<ApiResponse<?>> handleMethodArgumentTypeMismatch(
+                        MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
 
-    // เพิ่ม Handler สำหรับ ResponseStatusException (เช่น 404 ที่เรา throw จาก Service)
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<ApiResponse<?>> handleResponseStatusException(
-            org.springframework.web.server.ResponseStatusException ex, HttpServletRequest request) {
+                String message;
+                Class<?> requiredType = ex.getRequiredType();
+                if (requiredType != null && requiredType.isEnum()) {
+                        Object[] enumConstants = requiredType.getEnumConstants();
+                        message = String.format("Invalid value '%s' for '%s'. Accepted values: %s",
+                                        ex.getValue(), ex.getName(), Arrays.toString(enumConstants));
+                } else {
+                        message = String.format("Invalid value '%s' for parameter '%s'.",
+                                        ex.getValue(), ex.getName());
+                }
 
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                ex.getStatusCode().value(),
-                ex.getReason(), // ดึงข้อความ "User not found with email..."
-                ex.getStatusCode().toString(),
-                request.getRequestURI()
-        );
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.BAD_REQUEST.value(),
+                                message,
+                                "Bad Request",
+                                request.getRequestURI());
 
-        return new ResponseEntity<>(errorResponse, ex.getStatusCode());
-    }
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
-        ApiResponse<Object> response = new ApiResponse<>(
-                HttpStatus.FORBIDDEN.value(),
-                "Access Denied: " + ex.getMessage(),
-                null
-        );
-        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
-    }
+        // Handler for Exception ทั่วไป (Code 500)
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ApiResponse<?>> handleGenericException(Exception ex, HttpServletRequest request) {
 
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceededException(
-            MaxUploadSizeExceededException ex, HttpServletRequest request) {
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                                "An unexpected error occurred",
+                                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                                request.getRequestURI());
 
-        ApiResponse<?> errorResponse = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                "File size exceeds the maximum limit! (Maximum allowed is 5MB per file)",
-                "File Too Large",
-                request.getRequestURI()
-        );
+                return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
+        // Handler for Bad Request (Code 400)
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<ApiResponse<?>> handleIllegalArgumentException(IllegalArgumentException ex,
+                        HttpServletRequest request) {
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.BAD_REQUEST.value(),
+                                ex.getMessage(),
+                                "Bad Request",
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
+        // Handler for RequestCooldownException (Code 429)
+        @ExceptionHandler(RequestCooldownException.class)
+        public ResponseEntity<ApiResponse<?>> handleRequestCooldownException(
+                        RequestCooldownException ex, HttpServletRequest request) {
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.TOO_MANY_REQUESTS.value(), // 429
+                                ex.getMessage(),
+                                "Too Many Requests",
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        // Handler Invalid email or password (Code 401)
+        @ExceptionHandler(BadCredentialsException.class)
+        public ResponseEntity<ApiResponse<?>> handleBadCredentialsException(
+                        BadCredentialsException ex, HttpServletRequest request) {
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.UNAUTHORIZED.value(), // 401
+                                "Invalid email or password.",
+                                "Unauthorized",
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        }
+
+        // Handler Token (Code 401)
+        @ExceptionHandler({ MalformedJwtException.class, SignatureException.class, ExpiredJwtException.class })
+        public ResponseEntity<ApiResponse<?>> handleJwtAuthenticationException(
+                        Exception ex, HttpServletRequest request) {
+
+                String message;
+                String error;
+
+                if (ex instanceof ExpiredJwtException) {
+                        message = "Token has expired.";
+                        error = "Token Expired";
+                } else {
+                        message = "Token is invalid or malformed.";
+                        error = "Invalid Token";
+                }
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.UNAUTHORIZED.value(),
+                                message,
+                                error,
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        }
+
+        // Handler for missed request body or invalid JSON enum values (Code 400)
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ApiResponse<?>> handleHttpMessageNotReadable(
+                        HttpMessageNotReadableException ex, HttpServletRequest request) {
+
+                String errorMessage = "Required request body is missing or malformed.";
+
+                Throwable cause = ex.getCause();
+                if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException) {
+                        com.fasterxml.jackson.databind.exc.InvalidFormatException ife = (com.fasterxml.jackson.databind.exc.InvalidFormatException) cause;
+                        if (ife.getTargetType() != null && ife.getTargetType().isEnum()) {
+                                Object[] enumConstants = ife.getTargetType().getEnumConstants();
+                                errorMessage = String.format("Invalid value '%s' for '%s'. Accepted values: %s",
+                                                ife.getValue(),
+                                                ife.getPath().get(ife.getPath().size() - 1).getFieldName(),
+                                                Arrays.toString(enumConstants));
+                        }
+                }
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.BAD_REQUEST.value(),
+                                errorMessage,
+                                "Bad Request",
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
+
+        // เพิ่ม Handler สำหรับ ResponseStatusException (เช่น 404 ที่เรา throw จาก
+        // Service)
+        @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+        public ResponseEntity<ApiResponse<?>> handleResponseStatusException(
+                        org.springframework.web.server.ResponseStatusException ex, HttpServletRequest request) {
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                ex.getStatusCode().value(),
+                                ex.getReason(), // ดึงข้อความ "User not found with email..."
+                                ex.getStatusCode().toString(),
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, ex.getStatusCode());
+        }
+
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(AccessDeniedException ex) {
+                ApiResponse<Object> response = new ApiResponse<>(
+                                HttpStatus.FORBIDDEN.value(),
+                                "Access Denied: " + ex.getMessage(),
+                                null);
+                return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+        }
+
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
+        public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceededException(
+                        MaxUploadSizeExceededException ex, HttpServletRequest request) {
+
+                ApiResponse<?> errorResponse = new ApiResponse<>(
+                                HttpStatus.BAD_REQUEST.value(),
+                                "File size exceeds the maximum limit! (Maximum allowed is 5MB per file)",
+                                "File Too Large",
+                                request.getRequestURI());
+
+                return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        }
 }
