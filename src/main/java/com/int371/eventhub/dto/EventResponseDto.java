@@ -29,6 +29,7 @@ public class EventResponseDto {
     private EventImageResponseDto images;
     private boolean hasPreSurvey;
     private boolean hasPostSurvey;
+    private boolean isPreSurveyCompleted;
     private boolean isPostSurveyCompleted;
 
 }

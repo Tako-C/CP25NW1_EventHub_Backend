@@ -137,6 +137,7 @@ public class EventService {
         result.setHasPostSurvey(hasActivePostSurvey);
 
         // Check if user completed post survey
+        boolean isPreSurveyCompleted = false;
         boolean isPostSurveyCompleted = false;
         if (email != null) {
             User user = userRepository.findByEmail(email).orElse(null);
@@ -144,6 +145,10 @@ public class EventService {
                 MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user).orElse(null);
                 if (memberEvent != null) {
                     result.setCheckInStatus(memberEvent.getStatus().name());
+
+                    if (memberEvent.getDonePreSurvey() != null && memberEvent.getDonePreSurvey() == 1) {
+                        isPreSurveyCompleted = true;
+                    }
 
                     SurveyType targetType = null;
                     if (memberEvent.getEventRole() == MemberEventRole.VISITOR) {
@@ -163,6 +168,7 @@ public class EventService {
                 }
             }
         }
+        result.setPreSurveyCompleted(isPreSurveyCompleted);
         result.setPostSurveyCompleted(isPostSurveyCompleted);
         result.setEventStatus(event.getStatus());
 
@@ -270,11 +276,10 @@ public class EventService {
         event.setCreatedBy(dto.getCreatedBy());
         event.setUpdatedAt(LocalDateTime.now());
 
-
         // ส่วนที่เพิ่ม: อัปเดตสถานะ Event อัตโนมัติ (Auto Status Update)
         if (event.getStartDate() != null && event.getEndDate() != null) {
             LocalDateTime now = LocalDateTime.now();
-            
+
             if (now.isBefore(event.getStartDate())) {
                 event.setStatus(EventStatus.UPCOMING);
             } else if (now.isAfter(event.getEndDate())) {
@@ -282,8 +287,7 @@ public class EventService {
             } else {
                 event.setStatus(EventStatus.ONGOING);
             }
-        }
-        else {
+        } else {
             // ถ้าไม่มีวันที่ครบถ้วน ให้ตั้งสถานะเป็น UPCOMING เป็นค่าเริ่มต้น
             event.setStatus(EventStatus.UPCOMING);
         }

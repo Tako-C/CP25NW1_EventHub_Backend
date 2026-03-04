@@ -1,6 +1,8 @@
 package com.int371.eventhub.service;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,7 +19,13 @@ import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.repository.CityRepository;
 import com.int371.eventhub.repository.CountryRepository;
 import com.int371.eventhub.repository.JobRepository;
+import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
+import com.int371.eventhub.repository.EventRepository;
+import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.MemberEvent;
+import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.dto.AdminAddUserToEventRequestDto;
 
 @Service
 public class AdminService {
@@ -39,6 +47,12 @@ public class AdminService {
 
     @Autowired
     private CityRepository cityRepository;
+
+    @Autowired
+    private MemberEventRepository memberEventRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
 
     public AdminCreateUserResponseDto createUserByAdmin(AdminCreateUserRequestDto request, String adminEmail) {
         User admin = userRepository.findByEmail(adminEmail)
@@ -153,5 +167,96 @@ public class AdminService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         userRepository.delete(user);
+    }
+
+    @Transactional
+    public Map<String, Object> addUserToEvent(Integer eventId, AdminAddUserToEventRequestDto request) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
+
+        if (memberEventRepository.existsByUserIdAndEventId(user.getId(), event.getId())) {
+            throw new IllegalArgumentException("User is already registered for this event.");
+        }
+
+        MemberEvent memberEvent = new MemberEvent(user, event, MemberEventRole.VISITOR);
+        memberEventRepository.save(memberEvent);
+
+        return Map.of(
+                "eventId", event.getId(),
+                "userId", user.getId(),
+                "role", memberEvent.getEventRole(),
+                "status", memberEvent.getStatus());
+    }
+
+    @Transactional
+    public void removeUserFromEvent(Integer eventId, Integer userId) {
+        MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("User is not registered in this event."));
+
+        memberEventRepository.delete(memberEvent);
+    }
+
+    public List<Map<String, Object>> getAllUsers() {
+        return userRepository.findAll().stream().map(user -> Map.<String, Object>of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "firstName", user.getFirstName(),
+                "lastName", user.getLastName(),
+                "role", user.getRole(),
+                "status", user.getStatus())).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Map<String, Object> updateMemberEventRole(Integer eventId, Integer userId, MemberEventRole newRole) {
+        MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Member not found in this event."));
+
+        memberEvent.setEventRole(newRole);
+        memberEventRepository.save(memberEvent);
+
+        return Map.of(
+                "eventId", eventId,
+                "userId", userId,
+                "role", newRole);
+    }
+
+    public List<Map<String, Object>> getAllEventMembers() {
+        List<MemberEvent> members = memberEventRepository.findAll();
+
+        return members.stream().map(member -> {
+            User user = member.getUser();
+            Event event = member.getEvent();
+            return Map.<String, Object>of(
+                    "eventId", event.getId(),
+                    "eventName", event.getEventName(),
+                    "userId", user.getId(),
+                    "email", user.getEmail(),
+                    "firstName", user.getFirstName(),
+                    "lastName", user.getLastName(),
+                    "eventRole", member.getEventRole(),
+                    "checkInStatus", member.getStatus());
+        }).collect(Collectors.toList());
+    }
+
+    public List<Map<String, Object>> getAllUsersInEvent(Integer eventId) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
+
+        List<MemberEvent> members = memberEventRepository.findByEventId(eventId);
+
+        return members.stream().map(member -> {
+            User user = member.getUser();
+            return Map.<String, Object>of(
+                    "userId", user.getId(),
+                    "email", user.getEmail(),
+                    "firstName", user.getFirstName(),
+                    "lastName", user.getLastName(),
+                    "eventRole", member.getEventRole(),
+                    "checkInStatus", member.getStatus());
+        }).collect(Collectors.toList());
     }
 }

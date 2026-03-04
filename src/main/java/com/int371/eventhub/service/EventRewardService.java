@@ -481,6 +481,11 @@ public class EventRewardService {
                                 .orElseThrow(() -> new AccessDeniedException(
                                                 "User is not registered for this event."));
 
+                // ตรวจสอบว่าเป็น VISITOR หรือไม่
+                if (memberEvent.getEventRole() != MemberEventRole.VISITOR) {
+                        throw new IllegalArgumentException("Only users with the VISITOR role can redeem rewards.");
+                }
+
                 // ตรวจสอบเงื่อนไขตาม RewardRequirementType
                 switch (reward.getRequirementType()) {
                         case FREE:
