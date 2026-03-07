@@ -5,10 +5,13 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.int371.eventhub.entity.EventStatus;
+
 import lombok.Data;
 
 @Data
 public class EditEventRequestDto {
+    private EventStatus status;
     private String eventName;
     private String eventDesc;
     private Integer eventTypeId;
@@ -27,8 +30,9 @@ public class EditEventRequestDto {
     private MultipartFile eventMap;
 
     // รับไฟล์ Slideshow เป็น List
-    private List<MultipartFile> eventSlideshow; 
-    
-    // รับลำดับ Index ที่ต้องการเปลี่ยน (เช่น [1, 3] หากต้องการเปลี่ยนรูปที่ 1 และ 3)
-    private List<Integer> slideshowIndices; 
+    private List<MultipartFile> eventSlideshow;
+
+    // รับลำดับ Index ที่ต้องการเปลี่ยน (เช่น [1, 3] หากต้องการเปลี่ยนรูปที่ 1 และ
+    // 3)
+    private List<Integer> slideshowIndices;
 }

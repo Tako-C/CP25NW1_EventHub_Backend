@@ -11,12 +11,21 @@ import com.int371.eventhub.entity.Survey;
 
 public interface ResponseAnswerRepository extends JpaRepository<ResponseAnswer, Long> {
     boolean existsByMemberEventAndQuestion_Survey(MemberEvent memberEvent, Survey survey);
+
+    boolean existsByQuestion_Survey(Survey survey);
+
     boolean existsByMemberEventId(Integer memberEventId);
 
     // // เช็คว่า Member คนนี้ เคยตอบคำถามที่อยู่ใน Survey ID นี้แล้วหรือยัง
-    // boolean existsByMemberEventIdAndQuestion_Survey_Id(Integer memberEventId, Integer surveyId);
+    // boolean existsByMemberEventIdAndQuestion_Survey_Id(Integer memberEventId,
+    // Integer surveyId);
 
     // // หรือถ้าต้องการเช็คตามประเภท (เช่น POST_VISITOR)
-    // boolean existsByMemberEventIdAndQuestion_Survey_TypeIn(Integer memberEventId, Collection<SurveyType> types);
+    // boolean existsByMemberEventIdAndQuestion_Survey_TypeIn(Integer memberEventId,
+    // Collection<SurveyType> types);
+
+    java.util.List<ResponseAnswer> findByMemberEventIn(java.util.List<MemberEvent> memberEvents);
+
+    java.util.List<ResponseAnswer> findByQuestionIn(java.util.List<com.int371.eventhub.entity.Question> questions);
 
 }

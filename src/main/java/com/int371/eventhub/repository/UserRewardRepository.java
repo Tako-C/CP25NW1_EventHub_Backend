@@ -12,6 +12,12 @@ public interface UserRewardRepository extends JpaRepository<UserReward, Integer>
 
     boolean existsByUserAndEventReward(User user, EventReward eventReward);
 
+    boolean existsByEventReward(EventReward eventReward);
+
     List<UserReward> findByUserId(Integer userId);
+
+    List<UserReward> findByEventRewardIn(List<EventReward> eventRewards);
+
+    List<UserReward> findByEventReward(EventReward eventReward);
 
 }

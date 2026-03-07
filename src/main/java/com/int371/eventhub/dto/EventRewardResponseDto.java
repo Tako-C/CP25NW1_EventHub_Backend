@@ -13,6 +13,7 @@ public class EventRewardResponseDto {
     private String name;
     private String description;
     private Integer eventId;
+    private String eventName;
     private RewardRequirementType requirementType;
     private LocalDateTime startRedeemAt;
     private LocalDateTime endRedeemAt;

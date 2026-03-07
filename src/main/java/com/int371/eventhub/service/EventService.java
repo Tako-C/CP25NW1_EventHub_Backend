@@ -73,6 +73,15 @@ public class EventService {
     @Autowired
     private com.int371.eventhub.repository.ResponseAnswerRepository responseAnswerRepository;
 
+    @Autowired
+    private com.int371.eventhub.repository.EventRewardRepository eventRewardRepository;
+
+    @Autowired
+    private com.int371.eventhub.repository.UserRewardRepository userRewardRepository;
+
+    @Autowired
+    private com.int371.eventhub.repository.QuestionRepository questionRepository;
+
     private static final Set<String> CATEGORIES_FOR_ALL_EVENTS = Set.of("card", "slideshow");
     private static final Set<String> CATEGORIES_FOR_EVENT_BY_ID = Set.of("card", "slideshow", "detail", "map");
 
@@ -115,6 +124,56 @@ public class EventService {
                     return dto;
                 })
                 .toList();
+    }
+
+    public List<EventResponseDto> getAllEventsForAdmin() {
+        List<Event> events = eventRepository.findAll();
+        // if (events.isEmpty()) {
+        // throw new ResourceNotFoundException("No events available.");
+        // }
+        return events.stream()
+                .map(event -> {
+                    EventResponseDto dto = convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_ALL_EVENTS);
+
+                    boolean hasActivePreSurvey = hasActiveSurveyByTypes(
+                            event.getId(),
+                            List.of(
+                                    SurveyType.PRE_VISITOR,
+                                    SurveyType.PRE_EXHIBITOR));
+                    boolean hasActivePostSurvey = hasActiveSurveyByTypes(
+                            event.getId(),
+                            List.of(
+                                    SurveyType.POST_VISITOR,
+                                    SurveyType.POST_EXHIBITOR));
+                    dto.setHasPreSurvey(hasActivePreSurvey);
+                    dto.setHasPostSurvey(hasActivePostSurvey);
+                    dto.setEventStatus(event.getStatus());
+                    return dto;
+                })
+                .toList();
+    }
+
+    public EventResponseDto getEventByIdForAdmin(Integer id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+        boolean hasActivePreSurvey = hasActiveSurveyByTypes(
+                id,
+                List.of(
+                        SurveyType.PRE_VISITOR,
+                        SurveyType.PRE_EXHIBITOR));
+        boolean hasActivePostSurvey = hasActiveSurveyByTypes(
+                id,
+                List.of(
+                        SurveyType.POST_VISITOR,
+                        SurveyType.POST_EXHIBITOR));
+
+        EventResponseDto result = convertEventToDtoWithImageStructure(event, CATEGORIES_FOR_EVENT_BY_ID);
+
+        result.setHasPreSurvey(hasActivePreSurvey);
+        result.setHasPostSurvey(hasActivePostSurvey);
+        result.setEventStatus(event.getStatus());
+
+        return result;
     }
 
     public EventResponseDto getEventById(Integer id, String email) {
@@ -242,6 +301,62 @@ public class EventService {
         return responseDto;
     }
 
+    @Transactional
+    public EventResponseDto createEventForAdmin(EventRequestDto dto, String adminEmail) {
+        if (dto.getEventSlideshow() != null && dto.getEventSlideshow().size() > 3) {
+            throw new IllegalArgumentException("Event slideshow can contain at most 3 images");
+        }
+
+        Event event = modelMapper.map(dto, Event.class);
+        event.setId(null);
+
+        EventType type = eventTypeRepository.findById(dto.getEventTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("EventType not found"));
+        event.setEventTypeId(type);
+
+        if (event.getImages() == null)
+            event.setImages(new ArrayList<>());
+
+        event = eventRepository.save(event);
+        Integer eventId = event.getId();
+
+        if (isNotBlank(dto.getEventCard()))
+            event.getImages().add(processImage(dto.getEventCard(), "card", eventId, event, null));
+
+        if (isNotBlank(dto.getEventDetail()))
+            event.getImages().add(processImage(dto.getEventDetail(), "detail", eventId, event, null));
+
+        if (isNotBlank(dto.getEventMap()))
+            event.getImages().add(processImage(dto.getEventMap(), "map", eventId, event, null));
+
+        if (dto.getEventSlideshow() != null) {
+            for (int i = 0; i < dto.getEventSlideshow().size(); i++) {
+                MultipartFile file = dto.getEventSlideshow().get(i);
+                if (isNotBlank(file)) {
+                    event.getImages().add(
+                            processImage(file, "slideshow", eventId, event, i + 1));
+                }
+            }
+        }
+
+        Event savedEvent = eventRepository.save(event);
+
+        // Admin becomes the organizer
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin user not found: " + adminEmail));
+
+        MemberEvent memberEvent = new MemberEvent();
+        memberEvent.setUser(admin);
+        memberEvent.setEvent(savedEvent);
+        memberEvent.setEventRole(MemberEventRole.ORGANIZER);
+        memberEvent.setStatus(MemberEventStatus.REGISTRATION);
+        memberEventRepository.save(memberEvent);
+
+        EventResponseDto responseDto = modelMapper.map(savedEvent, EventResponseDto.class);
+        responseDto.setEventStatus(savedEvent.getStatus());
+        return responseDto;
+    }
+
     // ========================= UPDATE =========================
 
     @Transactional
@@ -276,21 +391,9 @@ public class EventService {
         event.setCreatedBy(dto.getCreatedBy());
         event.setUpdatedAt(LocalDateTime.now());
 
-        // ส่วนที่เพิ่ม: อัปเดตสถานะ Event อัตโนมัติ (Auto Status Update)
-        if (event.getStartDate() != null && event.getEndDate() != null) {
-            LocalDateTime now = LocalDateTime.now();
-
-            if (now.isBefore(event.getStartDate())) {
-                event.setStatus(EventStatus.UPCOMING);
-            } else if (now.isAfter(event.getEndDate())) {
-                event.setStatus(EventStatus.FINISHED);
-            } else {
-                event.setStatus(EventStatus.ONGOING);
-            }
-        } else {
-            // ถ้าไม่มีวันที่ครบถ้วน ให้ตั้งสถานะเป็น UPCOMING เป็นค่าเริ่มต้น
-            event.setStatus(EventStatus.UPCOMING);
-        }
+        EventStatus targetStatus = dto.getStatus() != null ? dto.getStatus() : event.getStatus();
+        validateEventStatusTimeline(targetStatus, event.getStartDate(), event.getEndDate());
+        event.setStatus(targetStatus);
         // Update Event Type if provided
 
         if (dto.getEventTypeId() != null) {
@@ -324,6 +427,112 @@ public class EventService {
         return eventRepository.save(event);
     }
 
+    @Transactional
+    public Event updateEventForAdmin(Integer id, EditEventRequestDto dto) {
+        if (dto.getSlideshowIndices() != null) {
+            for (int index = 0; index < dto.getSlideshowIndices().size(); index++) {
+                Integer targetIndex = dto.getSlideshowIndices().get(index);
+                if (targetIndex < 1 || targetIndex > 3) {
+                    throw new IllegalArgumentException(
+                            "Slideshow index must be between 1 and 3. Invalid index: " + targetIndex);
+                }
+            }
+        }
+
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+
+        Integer eventId = event.getId();
+
+        if (dto.getEventName() != null)
+            event.setEventName(dto.getEventName());
+        if (dto.getEventDesc() != null)
+            event.setEventDesc(dto.getEventDesc());
+        if (dto.getLocation() != null)
+            event.setLocation(dto.getLocation());
+        if (dto.getHostOrganisation() != null)
+            event.setHostOrganisation(dto.getHostOrganisation());
+        if (dto.getContactEmail() != null)
+            event.setContactEmail(dto.getContactEmail());
+        if (dto.getContactFacebook() != null)
+            event.setContactFacebook(dto.getContactFacebook());
+        if (dto.getContactLine() != null)
+            event.setContactLine(dto.getContactLine());
+        if (dto.getContactPhone() != null)
+            event.setContactPhone(dto.getContactPhone());
+        if (dto.getStartDate() != null)
+            event.setStartDate(dto.getStartDate());
+        if (dto.getEndDate() != null)
+            event.setEndDate(dto.getEndDate());
+        if (dto.getCreatedBy() != null)
+            event.setCreatedBy(dto.getCreatedBy());
+        event.setUpdatedAt(LocalDateTime.now());
+
+        EventStatus targetStatusAdmin = dto.getStatus() != null ? dto.getStatus() : event.getStatus();
+        validateEventStatusTimeline(targetStatusAdmin, event.getStartDate(), event.getEndDate());
+        event.setStatus(targetStatusAdmin);
+
+        if (dto.getEventTypeId() != null) {
+            EventType type = eventTypeRepository.findById(dto.getEventTypeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("EventType not found"));
+            event.setEventTypeId(type);
+        }
+
+        if (isNotBlank(dto.getEventCard()))
+            updateSingleImage(dto.getEventCard(), "card", eventId, event);
+
+        if (isNotBlank(dto.getEventDetail()))
+            updateSingleImage(dto.getEventDetail(), "detail", eventId, event);
+
+        if (isNotBlank(dto.getEventMap()))
+            updateSingleImage(dto.getEventMap(), "map", eventId, event);
+
+        if (dto.getEventSlideshow() != null && dto.getSlideshowIndices() != null) {
+            int size = Math.min(dto.getEventSlideshow().size(), dto.getSlideshowIndices().size());
+            for (int i = 0; i < size; i++) {
+                MultipartFile file = dto.getEventSlideshow().get(i);
+                Integer index = dto.getSlideshowIndices().get(i);
+                if (isNotBlank(file)) {
+                    removeImageByCategoryAndIndex(event, "slideshow", index);
+                    event.getImages().add(
+                            processImage(file, "slideshow", eventId, event, index));
+                }
+            }
+        }
+
+        return eventRepository.save(event);
+    }
+
+    private void validateEventStatusTimeline(EventStatus targetStatus, LocalDateTime startDate,
+            LocalDateTime endDate) {
+        if (targetStatus == null || targetStatus == EventStatus.DELETED) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (startDate != null && now.isBefore(startDate)) {
+            if (targetStatus != EventStatus.UPCOMING) {
+                throw new IllegalArgumentException(
+                        "Cannot change status to " + targetStatus
+                                + ". The current time is before the start date, so the status must be UPCOMING.");
+            }
+        } else if (endDate != null && now.isAfter(endDate)) {
+            if (targetStatus != EventStatus.FINISHED) {
+                throw new IllegalArgumentException(
+                        "Cannot change status to " + targetStatus
+                                + ". The event has already ended, so the status must be FINISHED. Please edit the dates if you want to set it to "
+                                + targetStatus + ".");
+            }
+        } else if (startDate != null && endDate != null && !now.isBefore(startDate) && !now.isAfter(endDate)) {
+            if (targetStatus != EventStatus.ONGOING) {
+                throw new IllegalArgumentException(
+                        "Cannot change status to " + targetStatus
+                                + ". The event is currently running, so the status must be ONGOING.");
+            }
+        }
+    }
+
     // ========================= DELETE =========================
     @Transactional
     public void deleteEvent(Integer id) {
@@ -333,11 +542,76 @@ public class EventService {
         // if (event.getImages() != null) {
         // for (EventImage img : event.getImages()) {
         // deleteImageFile(img.getImgPathEv());
-        // }
-        // }
-        // eventRepository.delete(event);
         event.setStatus(EventStatus.DELETED);
         eventRepository.save(event);
+    }
+
+    @Transactional
+    public void hardDeleteEventForAdmin(Integer eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        // 1. Fetch & Delete ResponseAnswers
+        List<MemberEvent> members = memberEventRepository.findByEventId(eventId);
+        if (!members.isEmpty()) {
+            List<com.int371.eventhub.entity.ResponseAnswer> answers = responseAnswerRepository
+                    .findByMemberEventIn(members);
+            if (!answers.isEmpty()) {
+                responseAnswerRepository.deleteAll(answers);
+            }
+        }
+
+        // 2. Fetch & Delete Questions, then Surveys
+        List<com.int371.eventhub.entity.Survey> surveys = surveyRepository.findByEventId(eventId);
+        if (!surveys.isEmpty()) {
+            List<com.int371.eventhub.entity.Question> questions = questionRepository.findBySurveyIn(surveys);
+            if (!questions.isEmpty()) {
+                questionRepository.deleteAll(questions);
+            }
+            surveyRepository.deleteAll(surveys);
+        }
+
+        // 3. Delete UserRewards, then EventRewards
+        List<com.int371.eventhub.entity.EventReward> rewards = eventRewardRepository.findByEventId(eventId);
+        if (!rewards.isEmpty()) {
+            List<com.int371.eventhub.entity.UserReward> userRewards = userRewardRepository.findByEventRewardIn(rewards);
+            if (!userRewards.isEmpty()) {
+                userRewardRepository.deleteAll(userRewards);
+            }
+
+            // Cleanup Reward Images from Disk before removing from DB
+            for (com.int371.eventhub.entity.EventReward reward : rewards) {
+                String expectedPattern = "_reward_" + reward.getId() + ".";
+                if (event.getImages() != null) {
+                    List<EventImage> imagesToRemove = event.getImages().stream()
+                            .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("reward"))
+                            .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                            .toList();
+
+                    for (EventImage img : imagesToRemove) {
+                        deleteImageFile(img.getImgPathEv());
+                        event.getImages().remove(img);
+                    }
+                }
+            }
+            eventRewardRepository.deleteAll(rewards);
+        }
+
+        // 4. Delete MemberEvents
+        if (!members.isEmpty()) {
+            memberEventRepository.deleteAll(members);
+        }
+
+        // 5. Delete Event Images (from disk, as cascade will handle DB)
+        if (event.getImages() != null) {
+            for (EventImage img : new ArrayList<>(event.getImages())) {
+                deleteImageFile(img.getImgPathEv());
+            }
+            event.getImages().clear();
+        }
+
+        // 6. Finally, Delete the Event itself
+        eventRepository.delete(event);
     }
 
     @Transactional

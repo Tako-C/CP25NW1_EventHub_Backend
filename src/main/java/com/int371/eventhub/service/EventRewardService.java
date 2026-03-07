@@ -148,6 +148,73 @@ public class EventRewardService {
         }
 
         @Transactional
+        public EventRewardResponseDto createRewardForAdmin(Integer eventId, CreateEventRewardRequestDto request) {
+                Event event = eventRepository.findById(eventId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Event not found with id: " + eventId));
+
+                EventReward reward = new EventReward();
+                reward.setName(request.getName());
+                reward.setDescription(request.getDescription());
+                reward.setEvent(event);
+                reward.setRequirementType(request.getRequirementType());
+                reward.setStartRedeemAt(request.getStartRedeemAt());
+                reward.setEndRedeemAt(request.getEndRedeemAt());
+                reward.setQuantity(request.getQuantity());
+                reward.setStatus(request.getStatus() != null ? request.getStatus() : RewardStatus.ACTIVE);
+
+                EventReward savedReward = eventRewardRepository.save(reward);
+
+                if (request.getImage() != null && !request.getImage().isEmpty()) {
+                        String contentType = request.getImage().getContentType();
+                        if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png")
+                                        || contentType.equals("image/jpg"))) {
+                                throw new IllegalArgumentException("Only JPEG and PNG images are allowed");
+                        }
+
+                        try {
+                                String originalName = request.getImage().getOriginalFilename();
+                                String ext = originalName != null
+                                                ? originalName.substring(originalName.lastIndexOf("."))
+                                                : ".jpg";
+                                String fileName = String.format("%d_reward_%d%s", eventId, savedReward.getId(), ext);
+
+                                java.nio.file.Path dir = Paths.get(uploadBaseDir);
+                                if (!Files.exists(dir)) {
+                                        Files.createDirectories(dir);
+                                }
+
+                                Files.copy(request.getImage().getInputStream(), dir.resolve(fileName),
+                                                StandardCopyOption.REPLACE_EXISTING);
+
+                                EventImage img = new EventImage();
+                                img.setUploadedAt(LocalDateTime.now());
+                                img.setImgPathEv(fileName);
+                                img.setEvent(event);
+
+                                ImageCategory cat = categoryRepository.findByCategoryName("reward")
+                                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                                "Category 'reward' not found"));
+                                img.setCategory(cat);
+
+                                if (event.getImages() == null) {
+                                        event.setImages(new ArrayList<>());
+                                }
+                                event.getImages().add(img);
+                                eventRepository.save(event);
+
+                        } catch (IOException e) {
+                                throw new RuntimeException("Failed to save reward image", e);
+                        }
+                }
+
+                EventRewardResponseDto response = modelMapper.map(savedReward, EventRewardResponseDto.class);
+                response.setEventId(savedReward.getEvent().getId());
+
+                return response;
+        }
+
+        @Transactional
         public EventRewardResponseDto updateReward(Integer eventId, Integer rewardId,
                         CreateEventRewardRequestDto request,
                         String userEmail) {
@@ -276,6 +343,124 @@ public class EventRewardService {
         }
 
         @Transactional
+        public EventRewardResponseDto updateRewardForAdmin(Integer eventId, Integer rewardId,
+                        CreateEventRewardRequestDto request) {
+                Event event = eventRepository.findById(eventId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Event not found with id: " + eventId));
+
+                EventReward reward = eventRewardRepository.findById(rewardId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Reward not found"));
+
+                if (!reward.getEvent().getId().equals(eventId)) {
+                        throw new IllegalArgumentException("Reward does not belong to this event");
+                }
+
+                if (request.getName() != null && !request.getName().trim().isEmpty()) {
+                        reward.setName(request.getName());
+                }
+                if (request.getDescription() != null) {
+                        reward.setDescription(request.getDescription());
+                }
+                if (request.getRequirementType() != null) {
+                        reward.setRequirementType(request.getRequirementType());
+                }
+                if (request.getStartRedeemAt() != null) {
+                        reward.setStartRedeemAt(request.getStartRedeemAt());
+                }
+                if (request.getEndRedeemAt() != null) {
+                        reward.setEndRedeemAt(request.getEndRedeemAt());
+                }
+                if (request.getQuantity() != null) {
+                        reward.setQuantity(request.getQuantity());
+                }
+                if (request.getStatus() != null) {
+                        reward.setStatus(request.getStatus());
+                }
+
+                EventReward savedReward = eventRewardRepository.save(reward);
+
+                if (request.getImage() != null && !request.getImage().isEmpty()) {
+                        String contentType = request.getImage().getContentType();
+                        if (contentType != null && (contentType.equals("image/jpeg") || contentType.equals("image/png")
+                                        || contentType.equals("image/jpg"))) {
+                                try {
+                                        String originalName = request.getImage().getOriginalFilename();
+                                        String ext = originalName != null
+                                                        ? originalName.substring(originalName.lastIndexOf("."))
+                                                        : ".jpg";
+                                        String fileName = String.format("%d_reward_%d%s", eventId, savedReward.getId(),
+                                                        ext);
+
+                                        java.nio.file.Path dir = Paths.get(uploadBaseDir);
+                                        if (!Files.exists(dir)) {
+                                                Files.createDirectories(dir);
+                                        }
+
+                                        String expectedPattern = "_reward_" + reward.getId() + ".";
+                                        EventImage existingImage = null;
+                                        if (event.getImages() != null) {
+                                                existingImage = event.getImages().stream()
+                                                                .filter(img -> img.getCategory().getCategoryName()
+                                                                                .equalsIgnoreCase("reward"))
+                                                                .filter(img -> img.getImgPathEv()
+                                                                                .contains(expectedPattern))
+                                                                .findFirst().orElse(null);
+                                        }
+
+                                        if (existingImage != null) {
+                                                try {
+                                                        Files.deleteIfExists(dir.resolve(existingImage.getImgPathEv()));
+                                                } catch (Exception e) {
+                                                }
+                                                existingImage.setImgPathEv(fileName);
+                                                existingImage.setUploadedAt(LocalDateTime.now());
+                                        } else {
+                                                EventImage img = new EventImage();
+                                                img.setUploadedAt(LocalDateTime.now());
+                                                img.setImgPathEv(fileName);
+                                                img.setEvent(event);
+
+                                                ImageCategory cat = categoryRepository.findByCategoryName("reward")
+                                                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                                                "Category 'reward' not found"));
+                                                img.setCategory(cat);
+
+                                                if (event.getImages() == null) {
+                                                        event.setImages(new ArrayList<>());
+                                                }
+                                                event.getImages().add(img);
+                                        }
+
+                                        Files.copy(request.getImage().getInputStream(), dir.resolve(fileName),
+                                                        StandardCopyOption.REPLACE_EXISTING);
+                                        eventRepository.save(event);
+
+                                } catch (IOException e) {
+                                        throw new RuntimeException("Failed to update reward image", e);
+                                }
+                        } else {
+                                throw new IllegalArgumentException("Only JPEG and PNG images are allowed");
+                        }
+                }
+
+                EventRewardResponseDto response = modelMapper.map(savedReward, EventRewardResponseDto.class);
+                response.setEventId(savedReward.getEvent().getId());
+
+                String expectedPattern = "_reward_" + savedReward.getId() + ".";
+                if (savedReward.getEvent().getImages() != null) {
+                        savedReward.getEvent().getImages().stream()
+                                        .filter(img -> img.getCategory().getCategoryName()
+                                                        .equalsIgnoreCase("reward"))
+                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                        .findFirst()
+                                        .ifPresent(img -> response.setImagePath(img.getImgPathEv()));
+                }
+
+                return response;
+        }
+
+        @Transactional
         public void deleteReward(Integer eventId, Integer rewardId, String userEmail) {
                 User user = userRepository.findByEmail(userEmail)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -324,6 +509,44 @@ public class EventRewardService {
                 eventRewardRepository.delete(reward);
         }
 
+        @Transactional
+        public void hardDeleteRewardForAdmin(Integer eventId, Integer rewardId) {
+                EventReward reward = eventRewardRepository.findById(rewardId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Reward not found with id: " + rewardId));
+
+                if (!reward.getEvent().getId().equals(eventId)) {
+                        throw new IllegalArgumentException("Reward does not belong to this event");
+                }
+
+                List<com.int371.eventhub.entity.UserReward> userRewards = userRewardRepository
+                                .findByEventReward(reward);
+                if (!userRewards.isEmpty()) {
+                        userRewardRepository.deleteAll(userRewards);
+                }
+
+                String expectedPattern = "_reward_" + reward.getId() + ".";
+                EventImage existingImage = null;
+                if (reward.getEvent().getImages() != null) {
+                        existingImage = reward.getEvent().getImages().stream()
+                                        .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("reward"))
+                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                        .findFirst().orElse(null);
+                }
+
+                if (existingImage != null) {
+                        java.nio.file.Path dir = Paths.get(uploadBaseDir);
+                        try {
+                                Files.deleteIfExists(dir.resolve(existingImage.getImgPathEv()));
+                        } catch (IOException ignored) {
+                        }
+                        reward.getEvent().getImages().remove(existingImage);
+                        eventRepository.save(reward.getEvent());
+                }
+
+                eventRewardRepository.delete(reward);
+        }
+
         @Transactional(readOnly = true)
         public List<EventRewardResponseDto> getRewardsForOrganizer(Integer eventId, String userEmail) {
                 User user = userRepository.findByEmail(userEmail)
@@ -359,6 +582,86 @@ public class EventRewardService {
                                         return dto;
                                 })
                                 .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<EventRewardResponseDto> getAllRewardsByEventIdForAdmin(Integer eventId) {
+                if (!eventRepository.existsById(eventId)) {
+                        throw new ResourceNotFoundException("Event not found with id: " + eventId);
+                }
+
+                List<EventReward> rewards = eventRewardRepository.findByEventId(eventId);
+                return rewards.stream()
+                                .map(reward -> {
+                                        EventRewardResponseDto dto = modelMapper.map(reward,
+                                                        EventRewardResponseDto.class);
+                                        dto.setEventId(reward.getEvent().getId());
+                                        dto.setEventName(reward.getEvent().getEventName());
+
+                                        String expectedPattern = "_reward_" + reward.getId() + ".";
+                                        reward.getEvent().getImages().stream()
+                                                        .filter(img -> img.getCategory().getCategoryName()
+                                                                        .equalsIgnoreCase("reward"))
+                                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                                        .findFirst()
+                                                        .ifPresent(img -> dto.setImagePath(img.getImgPathEv()));
+
+                                        return dto;
+                                })
+                                .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<EventRewardResponseDto> getAllRewardsForAdmin() {
+                List<EventReward> rewards = eventRewardRepository.findAll();
+                return rewards.stream()
+                                .map(reward -> {
+                                        EventRewardResponseDto dto = modelMapper.map(reward,
+                                                        EventRewardResponseDto.class);
+                                        dto.setEventId(reward.getEvent().getId());
+                                        dto.setEventName(reward.getEvent().getEventName());
+
+                                        String expectedPattern = "_reward_" + reward.getId() + ".";
+                                        reward.getEvent().getImages().stream()
+                                                        .filter(img -> img.getCategory().getCategoryName()
+                                                                        .equalsIgnoreCase("reward"))
+                                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                                        .findFirst()
+                                                        .ifPresent(img -> dto.setImagePath(img.getImgPathEv()));
+
+                                        return dto;
+                                })
+                                .toList();
+        }
+
+        @Transactional
+        public EventRewardResponseDto changeRewardStatusForAdmin(Integer eventId, Integer rewardId,
+                        RewardStatus newStatus) {
+                EventReward reward = eventRewardRepository.findById(rewardId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Reward not found with id: " + rewardId));
+
+                if (!reward.getEvent().getId().equals(eventId)) {
+                        throw new IllegalArgumentException("Reward does not belong to this event");
+                }
+
+                reward.setStatus(newStatus);
+                EventReward savedReward = eventRewardRepository.save(reward);
+
+                EventRewardResponseDto response = modelMapper.map(savedReward, EventRewardResponseDto.class);
+                response.setEventId(savedReward.getEvent().getId());
+
+                String expectedPattern = "_reward_" + savedReward.getId() + ".";
+                if (savedReward.getEvent().getImages() != null) {
+                        savedReward.getEvent().getImages().stream()
+                                        .filter(img -> img.getCategory().getCategoryName()
+                                                        .equalsIgnoreCase("reward"))
+                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                        .findFirst()
+                                        .ifPresent(img -> response.setImagePath(img.getImgPathEv()));
+                }
+
+                return response;
         }
 
         @Transactional(readOnly = true)

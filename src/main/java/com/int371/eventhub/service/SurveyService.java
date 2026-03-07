@@ -141,9 +141,59 @@ public class SurveyService {
         }
 
         surveyDto.setQuestions(questionDtos);
+
+        if (survey.getEvent() != null) {
+            surveyDto.setEventId(survey.getEvent().getId());
+            surveyDto.setEventName(survey.getEvent().getEventName());
+        }
+
         surveyDto.setCreatedAt(survey.getCreatedAt());
         surveyDto.setUpdatedAt(survey.getUpdatedAt());
         return surveyDto;
+    }
+
+    public List<SurveyResponseDto> getAllSurveysByEventIdForAdmin(Integer eventId) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
+
+        List<Survey> surveys = surveyRepository.findByEventId(eventId);
+
+        return surveys.stream()
+                .map(this::mapSurveyToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<SurveyResponseDto> getAllSurveysForAdmin() {
+        List<Survey> surveys = surveyRepository.findAll();
+
+        return surveys.stream()
+                .map(this::mapSurveyToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public SurveyResponseDto changeSurveyStatusForAdmin(Integer eventId, Integer surveyId, SurveyStatus newStatus) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
+
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey does not belong to this event");
+        }
+
+        if (newStatus == SurveyStatus.ACTIVE) {
+            // Check if another survey of the same type is already ACTIVE
+            boolean existsActive = surveyRepository.existsByEventIdAndTypeAndStatus(eventId, survey.getType(),
+                    SurveyStatus.ACTIVE);
+            if (existsActive && survey.getStatus() != SurveyStatus.ACTIVE) {
+                throw new IllegalArgumentException(
+                        "Another survey of type " + survey.getType() + " is already active. Deactivate it first.");
+            }
+        }
+
+        survey.setStatus(newStatus);
+        Survey savedSurvey = surveyRepository.save(survey);
+        return mapSurveyToDto(savedSurvey);
     }
 
     @Transactional(readOnly = true)
@@ -242,6 +292,61 @@ public class SurveyService {
     }
 
     @Transactional
+    public SurveyResponseDto createSurveyForAdmin(Integer eventId, CreateSurveyRequestDto request) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        if (surveyRepository.existsByEventIdAndTypeAndStatus(eventId, request.getSurveyType(), SurveyStatus.ACTIVE)) {
+            throw new IllegalArgumentException(
+                    "An active survey of type " + request.getSurveyType()
+                            + " already exists. Please deactivate existing surveys before creating a new one.");
+        }
+
+        validateQuestionCount(request.getSurveyType(), request.getQuestions().size());
+        validateQuestionContent(request.getQuestions());
+
+        Survey survey = new Survey();
+        survey.setName(request.getName());
+        survey.setDescription(request.getDescription());
+        survey.setPoints(request.getPoints());
+        survey.setType(request.getSurveyType());
+        survey.setStatus(SurveyStatus.ACTIVE);
+        survey.setEvent(event);
+
+        Survey savedSurvey = surveyRepository.save(survey);
+
+        if (request.getQuestions() != null && !request.getQuestions().isEmpty()) {
+            List<Question> questionsToSave = new ArrayList<>();
+
+            for (CreateQuestionRequestDto qDto : request.getQuestions()) {
+                Question q = new Question();
+                q.setSurvey(savedSurvey);
+                q.setQuestion(qDto.getQuestion());
+                q.setQuestionType(qDto.getQuestionType());
+
+                List<String> choices = qDto.getChoices();
+                if (choices != null) {
+                    if (!choices.isEmpty())
+                        q.setAnswer1(choices.get(0));
+                    if (choices.size() > 1)
+                        q.setAnswer2(choices.get(1));
+                    if (choices.size() > 2)
+                        q.setAnswer3(choices.get(2));
+                    if (choices.size() > 3)
+                        q.setAnswer4(choices.get(3));
+                    if (choices.size() > 4)
+                        q.setAnswer5(choices.get(4));
+                }
+                questionsToSave.add(q);
+            }
+            questionRepository.saveAll(questionsToSave);
+        }
+
+        SurveyResponseDto response = modelMapper.map(savedSurvey, SurveyResponseDto.class);
+        return response;
+    }
+
+    @Transactional
     public SurveyResponseDto updateSurvey(Integer eventId, Integer surveyId, UpdateSurveyRequestDto request,
             String userEmail) {
         checkOrganizerPermission(eventId, userEmail);
@@ -296,6 +401,79 @@ public class SurveyService {
         }
 
         return modelMapper.map(savedSurvey, SurveyResponseDto.class);
+    }
+
+    @Transactional
+    public SurveyResponseDto updateSurveyForAdmin(Integer eventId, Integer surveyId, UpdateSurveyRequestDto request) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
+
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey id " + surveyId + " does not belong to event id " + eventId);
+        }
+
+        if (request.getName() != null)
+            survey.setName(request.getName());
+        if (request.getDescription() != null)
+            survey.setDescription(request.getDescription());
+        if (request.getPoints() != null)
+            survey.setPoints(request.getPoints());
+        if (request.getSurveyType() != null)
+            survey.setType(request.getSurveyType());
+        if (request.getStatus() != null) {
+            if (request.getStatus() == SurveyStatus.ACTIVE && survey.getStatus() != SurveyStatus.ACTIVE) {
+                boolean existsActive = surveyRepository.existsByEventIdAndTypeAndStatus(eventId, survey.getType(),
+                        SurveyStatus.ACTIVE);
+                if (existsActive) {
+                    throw new IllegalArgumentException(
+                            "Another survey of type " + survey.getType() + " is already active.");
+                }
+            }
+            survey.setStatus(request.getStatus());
+        }
+
+        Survey savedSurvey = surveyRepository.save(survey);
+
+        if (request.getQuestions() != null) {
+            List<Question> existingQuestions = questionRepository.findBySurveyId(surveyId);
+            Map<Integer, Question> existingMap = existingQuestions.stream()
+                    .collect(Collectors.toMap(Question::getId, q -> q));
+
+            List<Question> questionsToSave = new ArrayList<>();
+            List<Integer> incomingIds = new ArrayList<>();
+
+            for (UpdateQuestionDto qDto : request.getQuestions()) {
+                Question question;
+
+                if (qDto.getId() != null && existingMap.containsKey(qDto.getId())) {
+                    question = existingMap.get(qDto.getId());
+                    incomingIds.add(qDto.getId());
+                } else {
+                    question = new Question();
+                    question.setSurvey(savedSurvey);
+                }
+
+                if (qDto.getQuestion() != null)
+                    question.setQuestion(qDto.getQuestion());
+                if (qDto.getQuestionType() != null)
+                    question.setQuestionType(qDto.getQuestionType());
+
+                if (qDto.getChoices() != null) {
+                    mapChoicesToQuestion(question, qDto.getChoices());
+                }
+
+                questionsToSave.add(question);
+            }
+
+            List<Question> questionsToDelete = existingQuestions.stream()
+                    .filter(q -> !incomingIds.contains(q.getId()))
+                    .collect(Collectors.toList());
+
+            questionRepository.deleteAll(questionsToDelete);
+            questionRepository.saveAll(questionsToSave);
+        }
+
+        return mapSurveyToDto(savedSurvey);
     }
 
     @Transactional
@@ -359,6 +537,49 @@ public class SurveyService {
         if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
             throw new AccessDeniedException("Only event organizer can perform this action");
         }
+    }
+
+    @Transactional
+    public void deleteSurvey(Integer surveyId, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+
+        MemberEvent memberEvent = memberEventRepository.findByEventAndUser(survey.getEvent(), user)
+                .orElseThrow(() -> new AccessDeniedException("User is not a member of this event"));
+
+        if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
+            throw new AccessDeniedException("Only event organizer can delete surveys");
+        }
+
+        survey.setStatus(SurveyStatus.DELETED);
+        surveyRepository.save(survey);
+    }
+
+    @Transactional
+    public void hardDeleteSurveyForAdmin(Integer eventId, Integer surveyId) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
+
+        if (!survey.getEvent().getId().equals(eventId)) {
+            throw new IllegalArgumentException("Survey does not belong to this event");
+        }
+
+        // Event event = survey.getEvent();
+
+        List<com.int371.eventhub.entity.Question> questions = questionRepository.findBySurveyId(surveyId);
+        if (!questions.isEmpty()) {
+            List<com.int371.eventhub.entity.ResponseAnswer> answers = responseAnswerRepository
+                    .findByQuestionIn(questions);
+            if (!answers.isEmpty()) {
+                responseAnswerRepository.deleteAll(answers);
+            }
+            questionRepository.deleteAll(questions);
+        }
+
+        surveyRepository.delete(survey);
     }
 
     @Transactional

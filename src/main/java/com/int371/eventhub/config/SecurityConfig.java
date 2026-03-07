@@ -42,6 +42,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/surveys/**").permitAll()
                                                 .requestMatchers("/error").permitAll()
 
+                                                .requestMatchers("/upload/qr/").hasAnyRole("GENERAL_USER", "ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/upload/").permitAll()
+
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register/otp/request")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register/otp/verify")

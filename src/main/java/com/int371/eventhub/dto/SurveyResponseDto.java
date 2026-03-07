@@ -11,6 +11,8 @@ import lombok.Data;
 @Data
 public class SurveyResponseDto {
     private Integer id;
+    private Integer eventId;
+    private String eventName;
     private String name;
     private String description;
     private Integer points;

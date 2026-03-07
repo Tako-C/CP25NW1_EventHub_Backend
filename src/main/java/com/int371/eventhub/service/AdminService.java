@@ -259,4 +259,21 @@ public class AdminService {
                     "checkInStatus", member.getStatus());
         }).collect(Collectors.toList());
     }
+
+    public List<Event> getAllEventsForAdmin() {
+        return eventRepository.findAll();
+    }
+
+    @Transactional
+    public Map<String, Object> changeEventStatus(Integer eventId, com.int371.eventhub.entity.EventStatus status) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        event.setStatus(status);
+        eventRepository.save(event);
+
+        return Map.of(
+                "eventId", event.getId(),
+                "status", event.getStatus());
+    }
 }

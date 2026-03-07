@@ -20,9 +20,18 @@ import com.int371.eventhub.dto.AdminCreateUserResponseDto;
 import com.int371.eventhub.dto.AdminUpdateUserRequestDto;
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.service.AdminService;
-
+import com.int371.eventhub.service.EventRewardService;
+import com.int371.eventhub.service.EventService;
+import com.int371.eventhub.service.SurveyService;
+import com.int371.eventhub.dto.EditEventRequestDto;
+import com.int371.eventhub.dto.UpdateSurveyRequestDto;
+import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.dto.CreateEventRewardRequestDto;
+import com.int371.eventhub.dto.EventResponseDto;
+import com.int371.eventhub.dto.SurveyResponseDto;
+import com.int371.eventhub.dto.EventRewardResponseDto;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import jakarta.validation.Valid;
-
 import java.security.Principal;
 import java.util.Map;
 import java.util.List;
@@ -33,6 +42,15 @@ public class AdminController {
 
         @Autowired
         private AdminService adminService;
+
+        @Autowired
+        private EventService eventService;
+
+        @Autowired
+        private SurveyService surveyService;
+
+        @Autowired
+        private EventRewardService eventRewardService;
 
         @PostMapping("/users")
         @PreAuthorize("hasRole('ADMIN')")
@@ -170,5 +188,238 @@ public class AdminController {
                                 result);
 
                 return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/events")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<List<EventResponseDto>>> getAllEventsForAdmin() {
+
+                List<EventResponseDto> result = eventService.getAllEventsForAdmin();
+
+                ApiResponse<List<EventResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Fetched all events successfully by admin.",
+                                result);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/events/{eventId}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<EventResponseDto>> getEventByIdForAdmin(
+                        @PathVariable Integer eventId) {
+
+                EventResponseDto result = eventService.getEventByIdForAdmin(eventId);
+
+                ApiResponse<EventResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Fetched event successfully by admin.",
+                                result);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @PutMapping("/events/{eventId}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<EventResponseDto>> updateEvent(
+                        @PathVariable Integer eventId,
+                        @Valid @ModelAttribute EditEventRequestDto request) {
+
+                Event updatedEvent = eventService.updateEventForAdmin(eventId, request);
+
+                ApiResponse<EventResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Event updated successfully by admin.",
+                                eventService.getEventByIdForAdmin(updatedEvent.getId()));
+
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/events/{eventId}/surveys")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<List<SurveyResponseDto>>> getAllSurveysByEventIdForAdmin(
+                        @PathVariable Integer eventId) {
+
+                List<SurveyResponseDto> result = surveyService.getAllSurveysByEventIdForAdmin(eventId);
+
+                ApiResponse<List<SurveyResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Fetched all surveys for event successfully by admin.",
+                                result);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/surveys")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<List<SurveyResponseDto>>> getAllSurveysForAdmin() {
+
+                List<SurveyResponseDto> result = surveyService.getAllSurveysForAdmin();
+
+                ApiResponse<List<SurveyResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Fetched all surveys successfully by admin.",
+                                result);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @PutMapping("/events/{eventId}/surveys/{surveyId}")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<SurveyResponseDto>> updateSurvey(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId,
+                        @RequestBody UpdateSurveyRequestDto request) {
+
+                SurveyResponseDto updatedSurvey = surveyService.updateSurveyForAdmin(eventId, surveyId, request);
+
+                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Survey updated successfully by admin.",
+                                updatedSurvey);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/events/{eventId}/rewards")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<List<EventRewardResponseDto>>> getAllRewardsByEventIdForAdmin(
+                        @PathVariable Integer eventId) {
+
+                List<EventRewardResponseDto> result = eventRewardService.getAllRewardsByEventIdForAdmin(eventId);
+
+                ApiResponse<List<EventRewardResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Fetched all rewards for event successfully by admin.",
+                                result);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @GetMapping("/rewards")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<List<EventRewardResponseDto>>> getAllRewardsForAdmin() {
+
+                List<EventRewardResponseDto> result = eventRewardService.getAllRewardsForAdmin();
+
+                ApiResponse<List<EventRewardResponseDto>> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Fetched all rewards successfully by admin.",
+                                result);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @PutMapping(value = "/events/{eventId}/rewards/{rewardId}", consumes = { "multipart/form-data" })
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<EventRewardResponseDto>> updateReward(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer rewardId,
+                        @ModelAttribute CreateEventRewardRequestDto request) {
+
+                EventRewardResponseDto updatedReward = eventRewardService.updateRewardForAdmin(eventId, rewardId,
+                                request);
+
+                ApiResponse<EventRewardResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Reward updated successfully by admin.",
+                                updatedReward);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @DeleteMapping("/events/{eventId}/hard-delete")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> hardDeleteEvent(
+                        @PathVariable Integer eventId) {
+
+                eventService.hardDeleteEventForAdmin(eventId);
+
+                ApiResponse<Void> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Event hard deleted successfully by admin.",
+                                null);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @DeleteMapping("/events/{eventId}/surveys/{surveyId}/hard-delete")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> hardDeleteSurvey(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer surveyId) {
+
+                surveyService.hardDeleteSurveyForAdmin(eventId, surveyId);
+
+                ApiResponse<Void> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Survey hard deleted successfully by admin.",
+                                null);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @DeleteMapping("/events/{eventId}/rewards/{rewardId}/hard-delete")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<Void>> hardDeleteReward(
+                        @PathVariable Integer eventId,
+                        @PathVariable Integer rewardId) {
+
+                eventRewardService.hardDeleteRewardForAdmin(eventId, rewardId);
+
+                ApiResponse<Void> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Reward hard deleted successfully by admin.",
+                                null);
+
+                return ResponseEntity.ok(response);
+        }
+
+        @PostMapping(value = "/events", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(
+                        @Valid @ModelAttribute com.int371.eventhub.dto.EventRequestDto dto,
+                        Principal principal) {
+
+                EventResponseDto createdEvent = eventService.createEventForAdmin(dto, principal.getName());
+
+                ApiResponse<EventResponseDto> response = new ApiResponse<>(
+                                HttpStatus.CREATED.value(),
+                                "Event created successfully by admin.",
+                                createdEvent);
+
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+
+        @PostMapping("/events/{eventId}/surveys")
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<SurveyResponseDto>> createSurvey(
+                        @PathVariable Integer eventId,
+                        @RequestBody com.int371.eventhub.dto.CreateSurveyRequestDto request) {
+
+                SurveyResponseDto createdSurvey = surveyService.createSurveyForAdmin(eventId, request);
+
+                ApiResponse<SurveyResponseDto> response = new ApiResponse<>(
+                                HttpStatus.CREATED.value(),
+                                "Survey created successfully by admin.",
+                                createdSurvey);
+
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+
+        @PostMapping(value = "/events/{eventId}/rewards", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<EventRewardResponseDto>> createReward(
+                        @PathVariable Integer eventId,
+                        @ModelAttribute CreateEventRewardRequestDto request) {
+
+                EventRewardResponseDto createdReward = eventRewardService.createRewardForAdmin(eventId, request);
+
+                ApiResponse<EventRewardResponseDto> response = new ApiResponse<>(
+                                HttpStatus.CREATED.value(),
+                                "Reward created successfully by admin.",
+                                createdReward);
+
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 }

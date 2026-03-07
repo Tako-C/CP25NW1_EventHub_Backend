@@ -23,7 +23,6 @@ import com.int371.eventhub.dto.RedeemRewardRequest;
 import com.int371.eventhub.service.EventRewardService;
 // import org.springframework.web.bind.annotation.RequestParam;
 
-
 @RestController
 @RequestMapping("/events")
 public class EventRewardController {
