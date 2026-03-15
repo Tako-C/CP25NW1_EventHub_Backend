@@ -40,6 +40,8 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.OPTIONS, "/auth/**").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
                                                 .requestMatchers("/surveys/**").permitAll()
+                                                // AI API ทุกคนเข้าถึงได้
+                                                .requestMatchers("/ai/**").permitAll()
                                                 .requestMatchers("/error").permitAll()
 
                                                 .requestMatchers("/upload/qr/").hasAnyRole("GENERAL_USER", "ADMIN")

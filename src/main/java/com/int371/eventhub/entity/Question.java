@@ -48,4 +48,7 @@ public class Question {
     @Enumerated(EnumType.STRING)
     @Column(name = "QUESTION_TYPE")
     private QuestionType questionType;
+
+    @Column(name = "KPI_TYPE")
+    private String kpiType;
 }

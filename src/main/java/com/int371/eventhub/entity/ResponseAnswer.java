@@ -37,4 +37,10 @@ public class ResponseAnswer {
     @Enumerated(EnumType.STRING)
     @Column(name = "QUESTION_TYPE")
     private QuestionType questionType;
+
+    @Column(name = "KEYWORD")
+    private String keyword;
+
+    @Column(name = "SENTIMENT")
+    private String sentiment;
 }
