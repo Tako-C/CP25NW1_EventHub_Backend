@@ -226,6 +226,7 @@ public class AiSummaryService {
             AiEventAnalysis analysis = new AiEventAnalysis();
             analysis.setEventId(eventId);
             analysis.setRawJsonResult(rawJson);
+            analysis.setModelVersion("gpt-4o-mini");
 
             String[] parts = rawJson.split("---", 2);
             if (parts.length >= 2) {
