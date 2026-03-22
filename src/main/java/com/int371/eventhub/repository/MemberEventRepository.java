@@ -13,6 +13,7 @@ import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EventStatus;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.User;
 
 public interface MemberEventRepository extends JpaRepository<MemberEvent, Integer> {
@@ -35,6 +36,16 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
     Optional<MemberEvent> findByUserIdAndEventId(Integer userId, Integer eventId);
 
     List<MemberEvent> findByEventId(Integer eventId);
+
+    Integer countByEventId(Integer eventId);
+
+    Integer countByEventIdAndStatus(Integer eventId, MemberEventStatus status);
+
+    @Query("SELECT u.job.jobNameTh, COUNT(u) " +
+            "FROM MemberEvent me JOIN me.user u " +
+            "WHERE me.event.id = :eventId AND u.job IS NOT NULL " +
+            "GROUP BY u.job.jobNameTh")
+    List<Object[]> countOccupationsByEventId(@Param("eventId") Integer eventId);
 
     @Query("""
                 SELECT new com.int371.eventhub.dto.SurveyResponseSubmissionStatusDto(

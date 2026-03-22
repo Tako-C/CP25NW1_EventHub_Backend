@@ -1,0 +1,48 @@
+{
+  "event_name": "Global Food Innovations 2026",
+  "event_type": "งานจัดแสดงนวัตกรรมอาหารและเทคโนโลยีการผลิต",
+  "location": "ศูนย์การประชุมแห่งชาติสิริกิติ์ (QSNCC)",
+  "event_detail": "งานแสดงเทคโนโลยีการแปรรูปอาหารและระบบจัดการร้านอาหารอัจฉริยะสำหรับผู้ประกอบการ",
+  "total_registered": 1200,
+  "total_checked_in": 980,
+  "total_feedback": 250,
+  "occupations": {
+    "เจ้าของธุรกิจร้านอาหาร": 600,
+    "เชฟและผู้เชี่ยวชาญด้านอาหาร": 380
+  },
+  "visitor_score": 4.5,
+  "exhibitor_score": 3.3,
+  "returning_visitor_rate": 25.0,
+  "top_issues": [
+    {
+      "category": "Catering",
+      "count": 30,
+      "event_role": "Visitor",
+      "example_text": "พื้นที่รับประทานอาหารช่วงพักเที่ยงค่อนข้างหนาแน่นและที่นั่งไม่พอ",
+      "sentiment": "Negative"
+    },
+    {
+      "category": "Technology & Infrastructure",
+      "count": 12,
+      "event_role": "Exhibitor",
+      "example_text": "ปลั๊กไฟในบูธมีจุดเดียว ไม่เพียงพอต่อการสาธิตเครื่องจักรแปรรูปอาหาร",
+      "sentiment": "Negative"
+    }
+  ],
+  "top_good": [
+    {
+      "category": "Technology & Infrastructure",
+      "count": 95,
+      "event_role": "Exhibitor",
+      "example_text": "WiFi ในฮอลล์เสถียรมาก ช่วยให้การสาธิตระบบ POS ของผู้จัดบูธลื่นไหลและปิดการขายได้ทันที",
+      "sentiment": "Positive"
+    },
+    {
+      "category": "Registration",
+      "count": 115,
+      "event_role": "Visitor",
+      "example_text": "ระบบเช็กอินรวดเร็วมาก ไม่ต้องต่อแถวนานเหมือนปีก่อน",
+      "sentiment": "Positive"
+    }
+  ]
+}
