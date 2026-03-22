@@ -44,7 +44,6 @@ public class SecurityConfig {
                                                 .requestMatchers("/ai/**").permitAll()
                                                 .requestMatchers("/error").permitAll()
 
-                                                .requestMatchers("/upload/qr/").hasAnyRole("GENERAL_USER", "ADMIN")
                                                 .requestMatchers(HttpMethod.GET, "/upload/").permitAll()
 
                                                 .requestMatchers(HttpMethod.POST, "/events/*/register/otp/request")
@@ -53,6 +52,8 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/events/rewards")
                                                 .permitAll()
+
+                                                .requestMatchers(HttpMethod.GET, "/events/rewards/detail/**").permitAll()
 
                                                 .requestMatchers("/events/*/rewards/**")
                                                 .hasAnyRole("GENERAL_USER", "ADMIN")

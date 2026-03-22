@@ -121,6 +121,19 @@ public class EventRewardController {
                 return ResponseEntity.ok(response);
         }
 
+        @GetMapping("/rewards/detail/{rewardId}")
+        public ResponseEntity<ApiResponse<EventRewardResponseDto>> getRewardById(
+                        @PathVariable Integer rewardId) {
+
+                EventRewardResponseDto data = eventRewardService.getRewardById(rewardId);
+
+                ApiResponse<EventRewardResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Reward detail fetched successfully",
+                                data);
+                return ResponseEntity.ok(response);
+        }
+
         @GetMapping("/rewards/{userId}")
         public ResponseEntity<ApiResponse<List<EventRewardResponseDto>>> getRewardsByUserId(
                         @PathVariable Integer userId,

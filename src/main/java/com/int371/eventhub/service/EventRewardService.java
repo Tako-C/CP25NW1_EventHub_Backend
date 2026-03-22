@@ -487,6 +487,12 @@ public class EventRewardService {
                         throw new IllegalArgumentException("Reward does not belong to this event");
                 }
 
+                List<UserReward> userRewards = userRewardRepository
+                                .findByEventReward(reward);
+                if (!userRewards.isEmpty()) {
+                        userRewardRepository.deleteAll(userRewards);
+                }
+
                 String expectedPattern = "_reward_" + reward.getId() + ".";
                 if (event.getImages() != null) {
                         EventImage existingImage = event.getImages().stream()
@@ -739,6 +745,27 @@ public class EventRewardService {
                                         return dto;
                                 })
                                 .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public EventRewardResponseDto getRewardById(Integer rewardId) {
+                EventReward reward = eventRewardRepository.findById(rewardId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Reward not found with id: " + rewardId));
+
+                EventRewardResponseDto dto = modelMapper.map(reward, EventRewardResponseDto.class);
+                dto.setEventId(reward.getEvent().getId());
+
+                String expectedPattern = "_reward_" + reward.getId() + ".";
+                if (reward.getEvent().getImages() != null) {
+                        reward.getEvent().getImages().stream()
+                                        .filter(img -> img.getCategory().getCategoryName().equalsIgnoreCase("reward"))
+                                        .filter(img -> img.getImgPathEv().contains(expectedPattern))
+                                        .findFirst()
+                                        .ifPresent(img -> dto.setImagePath(img.getImgPathEv()));
+                }
+
+                return dto;
         }
 
         @Transactional(readOnly = true)
