@@ -87,4 +87,75 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
     List<MemberEvent> findByEventIdAndSendEmail(Integer eventId, Integer sendEmail);
 
     List<MemberEvent> findByEventStatusAndSendEmailIn(EventStatus status, List<Integer> sendEmail, Pageable pageable);
+
+    @Query(value = "SELECT " +
+            "    CASE " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) < 18 THEN 'ต่ำกว่า 18 ปี' " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) BETWEEN 18 AND 24 THEN '18 - 24 ปี' " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) BETWEEN 25 AND 34 THEN '25 - 34 ปี' " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) BETWEEN 35 AND 44 THEN '35 - 44 ปี' " +
+            "        ELSE '45 ปีขึ้นไป' " +
+            "    END AS AGE_RANGE, " +
+            "    COUNT(ue.USER_ID) AS TOTAL_PARTICIPANTS " +
+            "FROM USER_EVENTS ue " +
+            "JOIN USERS u ON ue.USER_ID = u.ID " +
+            "WHERE ue.EVENT_ID = :eventId AND u.DATE_OF_BIRTH IS NOT NULL AND ue.STATUS IN (:statuses) " +
+            "GROUP BY " +
+            "    CASE " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) < 18 THEN 'ต่ำกว่า 18 ปี' " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) BETWEEN 18 AND 24 THEN '18 - 24 ปี' " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) BETWEEN 25 AND 34 THEN '25 - 34 ปี' " +
+            "        WHEN TRUNC(MONTHS_BETWEEN(SYSDATE, u.DATE_OF_BIRTH) / 12) BETWEEN 35 AND 44 THEN '35 - 44 ปี' " +
+            "        ELSE '45 ปีขึ้นไป' " +
+            "    END " +
+            "ORDER BY AGE_RANGE", nativeQuery = true)
+    List<Object[]> countAgeRangesByEventIdAndStatuses(@Param("eventId") Integer eventId, @Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT " +
+            "    GENDER_NAME, " +
+            "    COUNT(*) AS TOTAL_USERS " +
+            "FROM (" +
+            "    SELECT " +
+            "        CASE " +
+            "            WHEN u.GENDER = 'M' THEN 'ชาย' " +
+            "            WHEN u.GENDER = 'F' THEN 'หญิง' " +
+            "            ELSE 'ไม่ระบุ' " +
+            "        END AS GENDER_NAME " +
+            "    FROM USER_EVENTS ue " +
+            "    JOIN USERS u ON ue.USER_ID = u.ID " +
+            "    WHERE ue.EVENT_ID = :eventId AND ue.STATUS IN (:statuses) " +
+            ") " +
+            "GROUP BY GENDER_NAME", nativeQuery = true)
+    List<Object[]> countGendersByEventIdAndStatuses(@Param("eventId") Integer eventId, @Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT " +
+            "    j.NAME_TH AS JOB_NAME, " +
+            "    COUNT(ue.USER_ID) AS TOTAL_PARTICIPANTS " +
+            "FROM USER_EVENTS ue " +
+            "JOIN USERS u ON ue.USER_ID = u.ID " +
+            "JOIN JOBS j ON u.JOB_ID = j.ID " +
+            "WHERE ue.EVENT_ID = :eventId AND ue.STATUS IN (:statuses) " +
+            "GROUP BY j.NAME_TH " +
+            "ORDER BY TOTAL_PARTICIPANTS DESC", nativeQuery = true)
+    List<Object[]> countJobsByEventIdAndStatuses(@Param("eventId") Integer eventId, @Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT " +
+            "    c.NAME_TH AS CITY_NAME, " +
+            "    COUNT(ue.USER_ID) AS TOTAL_PARTICIPANTS " +
+            "FROM USER_EVENTS ue " +
+            "JOIN USERS u ON ue.USER_ID = u.ID " +
+            "JOIN CITIES c ON u.CITIES_ID = c.ID " +
+            "WHERE ue.EVENT_ID = :eventId AND ue.STATUS IN (:statuses) " +
+            "GROUP BY c.NAME_TH " +
+            "ORDER BY TOTAL_PARTICIPANTS DESC", nativeQuery = true)
+    List<Object[]> countCitiesByEventIdAndStatuses(@Param("eventId") Integer eventId, @Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT " +
+            "    ue.EVENT_ROLE AS ROLE_NAME, " +
+            "    COUNT(ue.USER_ID) AS TOTAL_PARTICIPANTS " +
+            "FROM USER_EVENTS ue " +
+            "WHERE ue.EVENT_ID = :eventId AND ue.STATUS IN (:statuses) " +
+            "GROUP BY ue.EVENT_ROLE " +
+            "ORDER BY TOTAL_PARTICIPANTS DESC", nativeQuery = true)
+    List<Object[]> countRolesByEventIdAndStatuses(@Param("eventId") Integer eventId, @Param("statuses") List<String> statuses);
 }
