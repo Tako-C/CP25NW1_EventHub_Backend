@@ -158,4 +158,55 @@ public interface MemberEventRepository extends JpaRepository<MemberEvent, Intege
             "GROUP BY ue.EVENT_ROLE " +
             "ORDER BY TOTAL_PARTICIPANTS DESC", nativeQuery = true)
     List<Object[]> countRolesByEventIdAndStatuses(@Param("eventId") Integer eventId, @Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT TO_CHAR(REGISTRATION_AT, 'HH24') AS HOUR, COUNT(*) " +
+            "FROM USER_EVENTS " +
+            "WHERE EVENT_ID = :eventId AND STATUS IN (:statuses) " +
+            "GROUP BY TO_CHAR(REGISTRATION_AT, 'HH24') " +
+            "ORDER BY HOUR", nativeQuery = true)
+    List<Object[]> countHourlyRegistrationsByEventIdAndStatuses(@Param("eventId") Integer eventId,
+            @Param("statuses") List<String> statuses);
+
+    @Query(value = "SELECT TO_CHAR(CHECK_IN_AT, 'HH24') AS HOUR, COUNT(*) " +
+            "FROM USER_EVENTS " +
+            "WHERE EVENT_ID = :eventId AND STATUS IN (:statuses) " +
+            "GROUP BY TO_CHAR(CHECK_IN_AT, 'HH24') " +
+            "ORDER BY HOUR", nativeQuery = true)
+    List<Object[]> countHourlyCheckInsByEventIdAndStatuses(@Param("eventId") Integer eventId,
+            @Param("statuses") List<String> statuses);
+
+    Long countByEventIdAndEventRoleAndDonePreSurvey(Integer eventId, MemberEventRole eventRole, Integer donePreSurvey);
+
+    Long countByEventIdAndEventRoleAndDonePostSurvey(Integer eventId, MemberEventRole eventRole,
+            Integer donePostSurvey);
+
+    Long countByEventIdAndEventRoleAndDonePreSurveyAndDonePostSurvey(Integer eventId, MemberEventRole eventRole,
+            Integer donePreSurvey, Integer donePostSurvey);
+
+    @Query("SELECT COUNT(me) FROM MemberEvent me WHERE me.event.id = :eventId " +
+            "AND me.eventRole IN (com.int371.eventhub.entity.MemberEventRole.VISITOR, com.int371.eventhub.entity.MemberEventRole.EXHIBITOR) " +
+            "AND me.donePreSurvey = :donePreSurvey")
+    Long countParticipantPreSurvey(@Param("eventId") Integer eventId, @Param("donePreSurvey") Integer donePreSurvey);
+
+    @Query("SELECT COUNT(me) FROM MemberEvent me WHERE me.event.id = :eventId " +
+            "AND me.eventRole IN (com.int371.eventhub.entity.MemberEventRole.VISITOR, com.int371.eventhub.entity.MemberEventRole.EXHIBITOR) " +
+            "AND me.donePostSurvey = :donePostSurvey")
+    Long countParticipantPostSurvey(@Param("eventId") Integer eventId, @Param("donePostSurvey") Integer donePostSurvey);
+
+    @Query("SELECT COUNT(me) FROM MemberEvent me WHERE me.event.id = :eventId " +
+            "AND me.eventRole IN (com.int371.eventhub.entity.MemberEventRole.VISITOR, com.int371.eventhub.entity.MemberEventRole.EXHIBITOR) " +
+            "AND me.donePreSurvey = :donePreSurvey AND me.donePostSurvey = :donePostSurvey")
+    Long countParticipantBothSurveys(@Param("eventId") Integer eventId, @Param("donePreSurvey") Integer donePreSurvey,
+            @Param("donePostSurvey") Integer donePostSurvey);
+
+    @Query("SELECT new com.int371.eventhub.dto.SurveyStatusListDto(u.firstName, u.lastName, " +
+            "CASE WHEN me.donePreSurvey = 1 THEN true ELSE false END, " +
+            "CASE WHEN me.donePostSurvey = 1 THEN true ELSE false END, " +
+            "(SELECT MIN(ra.createdAt) FROM ResponseAnswer ra " +
+            " JOIN ra.question q JOIN q.survey s " +
+            " WHERE ra.memberEvent = me AND (s.type = com.int371.eventhub.entity.SurveyType.POST_VISITOR OR s.type = com.int371.eventhub.entity.SurveyType.POST_EXHIBITOR))) " +
+            "FROM MemberEvent me JOIN me.user u " +
+            "WHERE me.event.id = :eventId AND me.eventRole = :role")
+    List<com.int371.eventhub.dto.SurveyStatusListDto> findSurveyStatusByEventIdAndRole(@Param("eventId") Integer eventId,
+            @Param("role") MemberEventRole role);
 }

@@ -267,6 +267,7 @@ public class SurveyService {
                 q.setSurvey(savedSurvey);
                 q.setQuestion(qDto.getQuestion());
                 q.setQuestionType(qDto.getQuestionType());
+                q.setKpiType(qDto.getKpiType());
 
                 // Map choices (List -> Columns)
                 List<String> choices = qDto.getChoices();

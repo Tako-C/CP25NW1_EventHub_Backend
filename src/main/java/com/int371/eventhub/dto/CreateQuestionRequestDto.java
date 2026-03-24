@@ -11,4 +11,5 @@ public class CreateQuestionRequestDto {
     private String question;
     private QuestionType questionType;
     private List<String> choices; // รับเป็น array ["A", "B", "C"]
+    private String kpiType;
 }

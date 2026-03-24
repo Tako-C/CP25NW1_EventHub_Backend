@@ -13,6 +13,15 @@ public class DashboardRegistrationStatsDto {
     private Integer totalCheckin;
     private Integer totalRegistration;
     private List<GenderStatDto> genderStats;
+    private List<HourlyStatDto> hourlyStats;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class HourlyStatDto {
+        private String hourRange;
+        private Long total;
+    }
 
     @Data
     @NoArgsConstructor

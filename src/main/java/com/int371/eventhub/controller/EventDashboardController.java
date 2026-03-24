@@ -11,6 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto;
+import com.int371.eventhub.dto.SatisfactionKpiDto;
+import com.int371.eventhub.dto.SurveyDashboardStatsDto;
+import com.int371.eventhub.dto.SurveyStatusListDto;
+import com.int371.eventhub.dto.TextResponseDto;
+import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.service.EventDashboardService;
 
 @RestController
@@ -42,6 +47,56 @@ public class EventDashboardController {
                 200,
                 "Fetched check-in stats successfully.",
                 stats));
+    }
+
+    @GetMapping("/{eventId}/surveys/visitor/stats")
+    public ResponseEntity<ApiResponse<SurveyDashboardStatsDto>> getVisitorSurveyStats(
+            @PathVariable Integer eventId) {
+
+        SurveyDashboardStatsDto stats = eventDashboardService.getSurveyStats(eventId, MemberEventRole.VISITOR);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched visitor survey stats successfully.",
+                stats));
+    }
+
+    @GetMapping("/{eventId}/surveys/visitor/status")
+    public ResponseEntity<ApiResponse<List<SurveyStatusListDto>>> getVisitorSurveyStatusList(
+            @PathVariable Integer eventId) {
+
+        List<SurveyStatusListDto> statusList = eventDashboardService.getSurveyStatusList(eventId,
+                MemberEventRole.VISITOR);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched visitor survey status list successfully.",
+                statusList));
+    }
+
+    @GetMapping("/{eventId}/surveys/exhibitor/stats")
+    public ResponseEntity<ApiResponse<SurveyDashboardStatsDto>> getExhibitorSurveyStats(
+            @PathVariable Integer eventId) {
+
+        SurveyDashboardStatsDto stats = eventDashboardService.getSurveyStats(eventId, MemberEventRole.EXHIBITOR);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched exhibitor survey stats successfully.",
+                stats));
+    }
+
+    @GetMapping("/{eventId}/surveys/exhibitor/status")
+    public ResponseEntity<ApiResponse<List<SurveyStatusListDto>>> getExhibitorSurveyStatusList(
+            @PathVariable Integer eventId) {
+
+        List<SurveyStatusListDto> statusList = eventDashboardService.getSurveyStatusList(eventId,
+                MemberEventRole.EXHIBITOR);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched exhibitor survey status list successfully.",
+                statusList));
     }
 
     @GetMapping("/{eventId}/roles")
@@ -107,5 +162,40 @@ public class EventDashboardController {
                 200,
                 "Fetched job stats successfully.",
                 stats));
+    }
+    @GetMapping("/{eventId}/surveys/visitor/satisfaction")
+    public ResponseEntity<ApiResponse<List<SatisfactionKpiDto>>> getVisitorSatisfactionKpi(
+            @PathVariable Integer eventId) {
+
+        List<SatisfactionKpiDto> kpi = eventDashboardService.getSatisfactionKpi(eventId, MemberEventRole.VISITOR);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched visitor satisfaction KPI successfully.",
+                kpi));
+    }
+
+    @GetMapping("/{eventId}/surveys/exhibitor/satisfaction")
+    public ResponseEntity<ApiResponse<List<SatisfactionKpiDto>>> getExhibitorSatisfactionKpi(
+            @PathVariable Integer eventId) {
+
+        List<SatisfactionKpiDto> kpi = eventDashboardService.getSatisfactionKpi(eventId, MemberEventRole.EXHIBITOR);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched exhibitor satisfaction KPI successfully.",
+                kpi));
+    }
+
+    @GetMapping("/{eventId}/surveys/text-responses")
+    public ResponseEntity<ApiResponse<List<TextResponseDto>>> getTextResponses(
+            @PathVariable Integer eventId) {
+
+        List<TextResponseDto> responses = eventDashboardService.getTextResponses(eventId);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched text responses successfully.",
+                responses));
     }
 }
