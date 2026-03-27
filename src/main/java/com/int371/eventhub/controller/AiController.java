@@ -19,6 +19,7 @@ import com.int371.eventhub.dto.ResponseAnswerSearchDto;
 import com.int371.eventhub.service.AiSummaryService;
 import com.int371.eventhub.service.KpiService;
 import com.int371.eventhub.service.ResponseAnswerService;
+import com.int371.eventhub.entity.AiEventAnalysis;
 
 @RestController
 @RequestMapping("/ai")
@@ -102,5 +103,23 @@ public class AiController {
                 data);
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/analysis/{eventId}")
+    public ResponseEntity<ApiResponse<List<AiEventAnalysis>>> getStoredAnalysis(@PathVariable Integer eventId) {
+        try {
+            List<AiEventAnalysis> analysis = aiSummaryService.getAllStoredAnalysis(eventId);
+            ApiResponse<List<AiEventAnalysis>> response = new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Stored analyses fetched successfully",
+                    analysis);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            ApiResponse<List<AiEventAnalysis>> response = new ApiResponse<>(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Failed to fetch stored analyses: " + e.getMessage(),
+                    null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
     }
 }

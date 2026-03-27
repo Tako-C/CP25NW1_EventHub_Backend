@@ -270,4 +270,9 @@ public class AiSummaryService {
             throw new RuntimeException("API Analysis Error: " + e.getMessage(), e);
         }
     }
+
+
+    public List<AiEventAnalysis> getAllStoredAnalysis(Integer eventId) {
+        return aiEventAnalysisRepository.findByEventIdOrderByCreatedAtDesc(eventId);
+    }
 }
