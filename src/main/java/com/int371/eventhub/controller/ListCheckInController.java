@@ -13,7 +13,10 @@ import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.ListCheckInRequestDto;
 import com.int371.eventhub.dto.ListCheckInResponseDto;
 import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.User;
+import com.int371.eventhub.entity.UserRole;
 import com.int371.eventhub.repository.EventRepository;
+import com.int371.eventhub.repository.UserRepository;
 import com.int371.eventhub.service.ListCheckInService;
 
 @RestController
@@ -25,6 +28,9 @@ public class ListCheckInController {
     
     @Autowired
     private EventRepository eventRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping
     public ResponseEntity<ApiResponse<List<ListCheckInResponseDto>>> getListCheckIn(
@@ -39,7 +45,8 @@ public class ListCheckInController {
                 .body(new ApiResponse<>(404, "Event not found", null));
     }
 
-    if (!event.getCreatedBy().equals(userId)) {
+    User user = userRepository.findById(userId).orElse(null);
+    if (user != null && user.getRole() != UserRole.ADMIN && !event.getCreatedBy().equals(userId)) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(403, "You are not the event organizer", null));
     }

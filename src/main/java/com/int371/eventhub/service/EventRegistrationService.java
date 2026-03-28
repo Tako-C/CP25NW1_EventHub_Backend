@@ -38,6 +38,7 @@ import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.MemberEventStatus;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.exception.ResourceNotFoundException;
+import com.int371.eventhub.entity.UserRole;
 import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
@@ -318,6 +319,7 @@ public class EventRegistrationService {
             }
 
             memberEvent.setStatus(MemberEventStatus.CHECK_IN);
+            memberEvent.setUpdatedAt(LocalDateTime.now());
             memberEventRepository.save(memberEvent);
 
             return "Check-in successful for user: " + memberEvent.getUser().getFirstName();
@@ -405,6 +407,13 @@ public class EventRegistrationService {
     }
 
     private void validateCheckInPermissions(String requesterEmail, Integer eventId) {
+        User requesterUser = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + requesterEmail));
+
+        if (requesterUser.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
         MemberEvent requester = memberEventRepository.findByUserEmailAndEventId(requesterEmail, eventId)
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this event."));
 
