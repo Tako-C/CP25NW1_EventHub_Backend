@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto;
-import com.int371.eventhub.dto.SatisfactionKpiDto;
+import com.int371.eventhub.dto.SatisfactionResponseDto;
 import com.int371.eventhub.dto.SurveyDashboardStatsDto;
 import com.int371.eventhub.dto.SurveyStatusListDto;
 import com.int371.eventhub.dto.TextResponseDto;
@@ -164,10 +164,10 @@ public class EventDashboardController {
                 stats));
     }
     @GetMapping("/{eventId}/surveys/visitor/satisfaction")
-    public ResponseEntity<ApiResponse<List<SatisfactionKpiDto>>> getVisitorSatisfactionKpi(
+    public ResponseEntity<ApiResponse<SatisfactionResponseDto>> getVisitorSatisfactionKpi(
             @PathVariable Integer eventId) {
 
-        List<SatisfactionKpiDto> kpi = eventDashboardService.getSatisfactionKpi(eventId, MemberEventRole.VISITOR);
+        SatisfactionResponseDto kpi = eventDashboardService.getSatisfactionKpi(eventId, MemberEventRole.VISITOR);
 
         return ResponseEntity.ok(new ApiResponse<>(
                 200,
@@ -176,10 +176,10 @@ public class EventDashboardController {
     }
 
     @GetMapping("/{eventId}/surveys/exhibitor/satisfaction")
-    public ResponseEntity<ApiResponse<List<SatisfactionKpiDto>>> getExhibitorSatisfactionKpi(
+    public ResponseEntity<ApiResponse<SatisfactionResponseDto>> getExhibitorSatisfactionKpi(
             @PathVariable Integer eventId) {
 
-        List<SatisfactionKpiDto> kpi = eventDashboardService.getSatisfactionKpi(eventId, MemberEventRole.EXHIBITOR);
+        SatisfactionResponseDto kpi = eventDashboardService.getSatisfactionKpi(eventId, MemberEventRole.EXHIBITOR);
 
         return ResponseEntity.ok(new ApiResponse<>(
                 200,

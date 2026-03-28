@@ -24,6 +24,24 @@ public class OperationalKpi {
     @Column(name = "TOTAL_POST_SURVEY")
     private Integer totalPostSurvey;
 
+    @Column(name = "VISITOR_SUB_PRE_SURVEY")
+    private Integer visitorSubPreSurvey;
+
+    @Column(name = "EXHIBITOR_SUB_PRE_SURVEY")
+    private Integer exhibitorSubPreSurvey;
+
+    @Column(name = "VISITOR_SUB_POST_SURVEY")
+    private Integer visitorSubPostSurvey;
+
+    @Column(name = "EXHIBITOR_SUB_POST_SURVEY")
+    private Integer exhibitorSubPostSurvey;
+
+    @Column(name = "TOTAL_SUB_PRE_SURVEY")
+    private Integer totalSubPreSurvey;
+
+    @Column(name = "TOTAL_SUB_POST_SURVEY")
+    private Integer totalSubPostSurvey;
+
     @Column(name = "SURVEY_COMPLETION_RATE")
     private Double surveyCompletionRate;
 

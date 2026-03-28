@@ -9,13 +9,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SurveyDashboardStatsDto {
-    private Long totalAllPreSurvey;
-    private Long totalAllPostSurvey;
-    private Long totalAllBothSurveys;
+    private Integer visitorSubPreSurvey;
+    private Integer exhibitorSubPreSurvey;
+    private Integer visitorSubPostSurvey;
+    private Integer exhibitorSubPostSurvey;
+    private Integer totalSubPreSurvey;
+    private Integer totalSubPostSurvey;
 
-    private Long totalPreSurvey;
-    private Long totalPostSurvey;
-    private Long totalBothSurveys;
+    private Double surveyCompletionRate;
+    private Integer totalEmailsSent;
 
     private List<DashboardRegistrationStatsDto.HourlyStatDto> hourlyPostSurveyStats;
 }

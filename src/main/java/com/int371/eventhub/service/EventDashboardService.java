@@ -10,13 +10,18 @@ import com.int371.eventhub.dto.DashboardRegistrationStatsDto;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto.GenderStatDto;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto.HourlyStatDto;
 import com.int371.eventhub.dto.SatisfactionKpiDto;
+import com.int371.eventhub.dto.SatisfactionResponseDto;
 import com.int371.eventhub.dto.SurveyDashboardStatsDto;
 import com.int371.eventhub.dto.SurveyStatusListDto;
 import com.int371.eventhub.dto.TextResponseDto;
 import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.OperationalKpi;
+import com.int371.eventhub.entity.SatisfactionKpi;
 import com.int371.eventhub.entity.SurveyType;
 import com.int371.eventhub.repository.MemberEventRepository;
+import com.int371.eventhub.repository.OperationalKpiRepository;
 import com.int371.eventhub.repository.ResponseAnswerRepository;
+import com.int371.eventhub.repository.SatisfactionKpiRepository;
 
 @Service
 public class EventDashboardService {
@@ -27,6 +32,12 @@ public class EventDashboardService {
     @Autowired
     private ResponseAnswerRepository responseAnswerRepository;
 
+    @Autowired
+    private SatisfactionKpiRepository satisfactionKpiRepository;
+
+    @Autowired
+    private OperationalKpiRepository operationalKpiRepository;
+
     public DashboardRegistrationStatsDto getEventRegistrationStats(Integer eventId) {
         return getStatsForStatuses(eventId, java.util.Arrays.asList("REGISTRATION", "CHECK_IN"), false);
     }
@@ -35,23 +46,38 @@ public class EventDashboardService {
         return getStatsForStatuses(eventId, java.util.Collections.singletonList("CHECK_IN"), true);
     }
 
-    public List<SatisfactionKpiDto> getSatisfactionKpi(Integer eventId, MemberEventRole role) {
-        java.util.List<SurveyType> surveyTypes = role == MemberEventRole.VISITOR
-                ? java.util.Arrays.asList(SurveyType.PRE_VISITOR, SurveyType.POST_VISITOR)
-                : java.util.Arrays.asList(SurveyType.PRE_EXHIBITOR, SurveyType.POST_EXHIBITOR);
+    public SatisfactionResponseDto getSatisfactionKpi(Integer eventId, MemberEventRole role) {
+        SatisfactionKpi kpiEntity = satisfactionKpiRepository.findByEventId(eventId).orElse(null);
+        if (kpiEntity == null) {
+            return new SatisfactionResponseDto(0.0, 0.0, java.util.Collections.emptyList());
+        }
 
-        List<Object[]> rawCounts = responseAnswerRepository.countSatisfactionByEventAndSurveyTypes(eventId, surveyTypes);
-        long totalResponses = rawCounts.stream().mapToLong(obj -> ((Number) obj[1]).longValue()).sum();
+        Double avgScore = role == MemberEventRole.VISITOR ? kpiEntity.getVisitorAvgScore() : kpiEntity.getExhibitorAvgScore();
 
-        return rawCounts.stream()
-                .map(obj -> {
-                    String answer = (String) obj[0];
-                    long count = ((Number) obj[1]).longValue();
-                    double percentage = totalResponses > 0 ? (double) count / totalResponses * 100 : 0;
-                    percentage = Math.round(percentage * 100.0) / 100.0;
-                    return new SatisfactionKpiDto(answer, count, percentage);
-                })
-                .collect(Collectors.toList());
+        List<SatisfactionKpiDto> kpiList = new java.util.ArrayList<>();
+        if (role == MemberEventRole.VISITOR) {
+            kpiList.add(new SatisfactionKpiDto("5", (long) (kpiEntity.getScoreVisitor5Count() != null ? kpiEntity.getScoreVisitor5Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("4", (long) (kpiEntity.getScoreVisitor4Count() != null ? kpiEntity.getScoreVisitor4Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("3", (long) (kpiEntity.getScoreVisitor3Count() != null ? kpiEntity.getScoreVisitor3Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("2", (long) (kpiEntity.getScoreVisitor2Count() != null ? kpiEntity.getScoreVisitor2Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("1", (long) (kpiEntity.getScoreVisitor1Count() != null ? kpiEntity.getScoreVisitor1Count() : 0), 0.0));
+        } else {
+            kpiList.add(new SatisfactionKpiDto("5", (long) (kpiEntity.getScoreExhibitor5Count() != null ? kpiEntity.getScoreExhibitor5Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("4", (long) (kpiEntity.getScoreExhibitor4Count() != null ? kpiEntity.getScoreExhibitor4Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("3", (long) (kpiEntity.getScoreExhibitor3Count() != null ? kpiEntity.getScoreExhibitor3Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("2", (long) (kpiEntity.getScoreExhibitor2Count() != null ? kpiEntity.getScoreExhibitor2Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("1", (long) (kpiEntity.getScoreExhibitor1Count() != null ? kpiEntity.getScoreExhibitor1Count() : 0), 0.0));
+        }
+
+        long total = kpiList.stream().mapToLong(SatisfactionKpiDto::getCount).sum();
+        for (SatisfactionKpiDto dto : kpiList) {
+            double percentage = total > 0 ? (double) dto.getCount() / total * 100 : 0;
+            dto.setPercentage(Math.round(percentage * 100.0) / 100.0);
+        }
+
+        return new SatisfactionResponseDto(avgScore != null ? avgScore : 0.0,
+                kpiEntity.getAvgSatisfactionScore() != null ? kpiEntity.getAvgSatisfactionScore() : 0.0,
+                kpiList);
     }
 
     public List<TextResponseDto> getTextResponses(Integer eventId) {
@@ -67,14 +93,7 @@ public class EventDashboardService {
     }
 
     public SurveyDashboardStatsDto getSurveyStats(Integer eventId, MemberEventRole role) {
-        Long preCount = memberEventRepository.countByEventIdAndEventRoleAndDonePreSurvey(eventId, role, 1);
-        Long postCount = memberEventRepository.countByEventIdAndEventRoleAndDonePostSurvey(eventId, role, 1);
-        Long bothCount = memberEventRepository.countByEventIdAndEventRoleAndDonePreSurveyAndDonePostSurvey(eventId, role,
-                1, 1);
-        
-        Long allPreCount = memberEventRepository.countParticipantPreSurvey(eventId, 1);
-        Long allPostCount = memberEventRepository.countParticipantPostSurvey(eventId, 1);
-        Long allBothCount = memberEventRepository.countParticipantBothSurveys(eventId, 1, 1);
+        OperationalKpi opKpi = operationalKpiRepository.findByEventId(eventId).orElse(null);
 
         List<Object[]> hourlyData = responseAnswerRepository.countHourlySubmissionsByEventIdAndRole(eventId,
                 role.name());
@@ -93,13 +112,19 @@ public class EventDashboardService {
             hourlyPostSurveyStats.add(new HourlyStatDto(range, count));
         }
 
+        if (opKpi == null) {
+            return new SurveyDashboardStatsDto(0, 0, 0, 0, 0, 0, 0.0, 0, hourlyPostSurveyStats);
+        }
+
         return new SurveyDashboardStatsDto(
-                preCount != null ? preCount : 0L,
-                postCount != null ? postCount : 0L,
-                bothCount != null ? bothCount : 0L,
-                allPreCount != null ? allPreCount : 0L,
-                allPostCount != null ? allPostCount : 0L,
-                allBothCount != null ? allBothCount : 0L,
+                opKpi.getVisitorSubPreSurvey() != null ? opKpi.getVisitorSubPreSurvey() : 0,
+                opKpi.getExhibitorSubPreSurvey() != null ? opKpi.getExhibitorSubPreSurvey() : 0,
+                opKpi.getVisitorSubPostSurvey() != null ? opKpi.getVisitorSubPostSurvey() : 0,
+                opKpi.getExhibitorSubPostSurvey() != null ? opKpi.getExhibitorSubPostSurvey() : 0,
+                opKpi.getTotalSubPreSurvey() != null ? opKpi.getTotalSubPreSurvey() : 0,
+                opKpi.getTotalSubPostSurvey() != null ? opKpi.getTotalSubPostSurvey() : 0,
+                opKpi.getSurveyCompletionRate() != null ? opKpi.getSurveyCompletionRate() : 0.0,
+                opKpi.getTotalEmailsSent() != null ? opKpi.getTotalEmailsSent() : 0,
                 hourlyPostSurveyStats);
     }
 

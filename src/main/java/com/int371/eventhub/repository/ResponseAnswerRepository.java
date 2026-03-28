@@ -30,15 +30,19 @@ public interface ResponseAnswerRepository extends JpaRepository<ResponseAnswer, 
     @Query("SELECT COUNT(r) FROM ResponseAnswer r JOIN r.question q JOIN q.survey su WHERE su.event.id = :eventId AND r.questionType = com.int371.eventhub.entity.QuestionType.TEXT")
     Integer countTextFeedbackByEventId(@Param("eventId") Integer eventId);
 
-    @Query(value = "SELECT TO_CHAR(ra.CREATED_AT, 'HH24') AS HOUR, COUNT(DISTINCT ra.USER_EVENT_ID || '-' || q.SURVEY_ID) " +
-            "FROM RESPONSE_ANSWER ra " +
-            "JOIN QUESTIONS q ON ra.QUESTION_ID = q.ID " +
-            "JOIN SURVEYS s ON q.SURVEY_ID = s.ID " +
-            "JOIN USER_EVENTS ue ON ra.USER_EVENT_ID = ue.ID " +
-            "WHERE s.EVENT_ID = :eventId AND UPPER(ue.EVENT_ROLE) = UPPER(:role) " +
-            "AND s.SURVEYS_TYPE IN ('POST_VISITOR', 'POST_EXHIBITOR') " +
-            "GROUP BY TO_CHAR(ra.CREATED_AT, 'HH24') " +
-            "ORDER BY HOUR", nativeQuery = true)
+    @Query(value = "SELECT HOUR, COUNT(*) FROM (" +
+            "    SELECT ue.ID, " +
+            "           TO_CHAR(COALESCE((" +
+            "               SELECT MIN(ra.CREATED_AT) " +
+            "               FROM RESPONSE_ANSWER ra " +
+            "               JOIN QUESTIONS q ON ra.QUESTION_ID = q.ID " +
+            "               JOIN SURVEYS s ON q.SURVEY_ID = s.ID " +
+            "               WHERE ra.USER_EVENT_ID = ue.ID AND s.EVENT_ID = :eventId AND s.SURVEYS_TYPE LIKE 'POST_%'" +
+            "           ), ue.CHECK_IN_AT), 'HH24') AS HOUR " +
+            "    FROM USER_EVENTS ue " +
+            "    WHERE ue.EVENT_ID = :eventId AND UPPER(ue.EVENT_ROLE) = UPPER(:role) " +
+            "    AND ue.DONE_POST_SURVEY = 1" +
+            ") subq GROUP BY HOUR ORDER BY HOUR", nativeQuery = true)
     List<Object[]> countHourlySubmissionsByEventIdAndRole(@Param("eventId") Integer eventId,
             @Param("role") String role);
 
