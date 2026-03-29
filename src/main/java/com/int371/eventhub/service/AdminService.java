@@ -25,6 +25,7 @@ import com.int371.eventhub.repository.EventRepository;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.entity.ResponseAnswer;
 import com.int371.eventhub.dto.AdminAddUserToEventRequestDto;
 import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.repository.SuggestionsAnalysisRepository;
@@ -193,7 +194,8 @@ public class AdminService {
             Integer meId = me.getId();
 
             // 1. ลบตารางวิเคราะห์ (ต้องเรียกผ่าน suggestionsAnalysisRepository)
-            suggestionsAnalysisRepository.deleteByMemberEventId(meId);
+            List<ResponseAnswer> responseAnswers = responseAnswerRepository.findByMemberEventId(meId);
+            suggestionsAnalysisRepository.deleteByResponseAnswerIn(responseAnswers);
 
             // 2. ลบคำตอบ (เรียกผ่าน responseAnswerRepository และใช้ชื่อ Method ให้ถูก)
             responseAnswerRepository.deleteByMemberEventId(meId);
@@ -243,7 +245,9 @@ public class AdminService {
 
         Integer memberEventId = memberEvent.getId();
 
-        suggestionsAnalysisRepository.deleteByMemberEventId(memberEventId);
+        List<ResponseAnswer> responseAnswers = responseAnswerRepository.findByMemberEventId(memberEvent.getId());
+
+        suggestionsAnalysisRepository.deleteByResponseAnswerIn(responseAnswers);
 
         responseAnswerRepository.deleteByMemberEventId(memberEventId);
 

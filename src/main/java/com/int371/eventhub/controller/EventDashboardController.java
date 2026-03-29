@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.int371.eventhub.dto.ApiResponse;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto;
+import com.int371.eventhub.dto.QuestionSummaryDto;
 import com.int371.eventhub.dto.SatisfactionResponseDto;
 import com.int371.eventhub.dto.SurveyDashboardStatsDto;
 import com.int371.eventhub.dto.SurveyStatusListDto;
@@ -197,5 +198,29 @@ public class EventDashboardController {
                 200,
                 "Fetched text responses successfully.",
                 responses));
+    }
+
+    @GetMapping("/{eventId}/surveys/visitor/questions")
+    public ResponseEntity<ApiResponse<List<QuestionSummaryDto>>> getVisitorQuestionStats(
+            @PathVariable Integer eventId) {
+
+        List<QuestionSummaryDto> stats = eventDashboardService.getVisitorQuestionStats(eventId);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched visitor question stats successfully.",
+                stats));
+    }
+
+    @GetMapping("/{eventId}/surveys/exhibitor/questions")
+    public ResponseEntity<ApiResponse<List<QuestionSummaryDto>>> getExhibitorQuestionStats(
+            @PathVariable Integer eventId) {
+
+        List<QuestionSummaryDto> stats = eventDashboardService.getExhibitorQuestionStats(eventId);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Fetched exhibitor question stats successfully.",
+                stats));
     }
 }

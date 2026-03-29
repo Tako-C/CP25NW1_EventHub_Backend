@@ -1,6 +1,9 @@
 package com.int371.eventhub.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto.GenderStatDto;
 import com.int371.eventhub.dto.DashboardRegistrationStatsDto.HourlyStatDto;
+import com.int371.eventhub.dto.QuestionSummaryDto;
 import com.int371.eventhub.dto.SatisfactionKpiDto;
 import com.int371.eventhub.dto.SatisfactionResponseDto;
 import com.int371.eventhub.dto.SurveyDashboardStatsDto;
@@ -16,6 +20,7 @@ import com.int371.eventhub.dto.SurveyStatusListDto;
 import com.int371.eventhub.dto.TextResponseDto;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.entity.OperationalKpi;
+import com.int371.eventhub.entity.QuestionType;
 import com.int371.eventhub.entity.SatisfactionKpi;
 import com.int371.eventhub.entity.SurveyType;
 import com.int371.eventhub.repository.MemberEventRepository;
@@ -64,21 +69,37 @@ public class EventDashboardService {
             return new SatisfactionResponseDto(0.0, 0.0, java.util.Collections.emptyList());
         }
 
-        Double avgScore = role == MemberEventRole.VISITOR ? kpiEntity.getVisitorAvgScore() : kpiEntity.getExhibitorAvgScore();
+        Double avgScore = role == MemberEventRole.VISITOR ? kpiEntity.getVisitorAvgScore()
+                : kpiEntity.getExhibitorAvgScore();
 
         List<SatisfactionKpiDto> kpiList = new java.util.ArrayList<>();
         if (role == MemberEventRole.VISITOR) {
-            kpiList.add(new SatisfactionKpiDto("5", (long) (kpiEntity.getScoreVisitor5Count() != null ? kpiEntity.getScoreVisitor5Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("4", (long) (kpiEntity.getScoreVisitor4Count() != null ? kpiEntity.getScoreVisitor4Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("3", (long) (kpiEntity.getScoreVisitor3Count() != null ? kpiEntity.getScoreVisitor3Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("2", (long) (kpiEntity.getScoreVisitor2Count() != null ? kpiEntity.getScoreVisitor2Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("1", (long) (kpiEntity.getScoreVisitor1Count() != null ? kpiEntity.getScoreVisitor1Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("5",
+                    (long) (kpiEntity.getScoreVisitor5Count() != null ? kpiEntity.getScoreVisitor5Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("4",
+                    (long) (kpiEntity.getScoreVisitor4Count() != null ? kpiEntity.getScoreVisitor4Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("3",
+                    (long) (kpiEntity.getScoreVisitor3Count() != null ? kpiEntity.getScoreVisitor3Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("2",
+                    (long) (kpiEntity.getScoreVisitor2Count() != null ? kpiEntity.getScoreVisitor2Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("1",
+                    (long) (kpiEntity.getScoreVisitor1Count() != null ? kpiEntity.getScoreVisitor1Count() : 0), 0.0));
         } else {
-            kpiList.add(new SatisfactionKpiDto("5", (long) (kpiEntity.getScoreExhibitor5Count() != null ? kpiEntity.getScoreExhibitor5Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("4", (long) (kpiEntity.getScoreExhibitor4Count() != null ? kpiEntity.getScoreExhibitor4Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("3", (long) (kpiEntity.getScoreExhibitor3Count() != null ? kpiEntity.getScoreExhibitor3Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("2", (long) (kpiEntity.getScoreExhibitor2Count() != null ? kpiEntity.getScoreExhibitor2Count() : 0), 0.0));
-            kpiList.add(new SatisfactionKpiDto("1", (long) (kpiEntity.getScoreExhibitor1Count() != null ? kpiEntity.getScoreExhibitor1Count() : 0), 0.0));
+            kpiList.add(new SatisfactionKpiDto("5",
+                    (long) (kpiEntity.getScoreExhibitor5Count() != null ? kpiEntity.getScoreExhibitor5Count() : 0),
+                    0.0));
+            kpiList.add(new SatisfactionKpiDto("4",
+                    (long) (kpiEntity.getScoreExhibitor4Count() != null ? kpiEntity.getScoreExhibitor4Count() : 0),
+                    0.0));
+            kpiList.add(new SatisfactionKpiDto("3",
+                    (long) (kpiEntity.getScoreExhibitor3Count() != null ? kpiEntity.getScoreExhibitor3Count() : 0),
+                    0.0));
+            kpiList.add(new SatisfactionKpiDto("2",
+                    (long) (kpiEntity.getScoreExhibitor2Count() != null ? kpiEntity.getScoreExhibitor2Count() : 0),
+                    0.0));
+            kpiList.add(new SatisfactionKpiDto("1",
+                    (long) (kpiEntity.getScoreExhibitor1Count() != null ? kpiEntity.getScoreExhibitor1Count() : 0),
+                    0.0));
         }
 
         long total = kpiList.stream().mapToLong(SatisfactionKpiDto::getCount).sum();
@@ -103,6 +124,45 @@ public class EventDashboardService {
                         (String) obj[3],
                         (String) obj[4]))
                 .collect(Collectors.toList());
+    }
+
+    public List<QuestionSummaryDto> getVisitorQuestionStats(Integer eventId) {
+        validateEventExists(eventId);
+        List<SurveyType> types = List.of(SurveyType.PRE_VISITOR, SurveyType.POST_VISITOR);
+        return getQuestionStatsHelper(eventId, types);
+    }
+
+    public List<QuestionSummaryDto> getExhibitorQuestionStats(Integer eventId) {
+        validateEventExists(eventId);
+        List<SurveyType> types = List.of(SurveyType.PRE_EXHIBITOR, SurveyType.POST_EXHIBITOR);
+        return getQuestionStatsHelper(eventId, types);
+    }
+
+    private List<QuestionSummaryDto> getQuestionStatsHelper(Integer eventId, List<SurveyType> types) {
+        List<Object[]> results = responseAnswerRepository.countAnswersByEventAndSurveyTypes(eventId, types);
+        Map<Integer, QuestionSummaryDto> map = new LinkedHashMap<>();
+
+        for (Object[] row : results) {
+            String surveyType = ((SurveyType) row[0]).name();
+            Integer questionId = (Integer) row[1];
+            String questionText = (String) row[2];
+            String questionType = ((QuestionType) row[3]).name();
+            String answerText = (String) row[4];
+            Long count = ((Number) row[5]).longValue();
+
+            map.putIfAbsent(questionId, new QuestionSummaryDto(
+                    surveyType,
+                    questionId,
+                    questionText,
+                    questionType,
+                    new ArrayList<>()));
+
+            map.get(questionId).getAnswers().add(new QuestionSummaryDto.AnswerStatDto(
+                    answerText != null ? answerText : "ไม่มีข้อมูล",
+                    count));
+        }
+
+        return new ArrayList<>(map.values());
     }
 
     public SurveyDashboardStatsDto getSurveyStats(Integer eventId, MemberEventRole role) {

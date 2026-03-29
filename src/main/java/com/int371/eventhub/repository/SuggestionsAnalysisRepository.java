@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.int371.eventhub.entity.QuestionType;
+import com.int371.eventhub.entity.ResponseAnswer;
 import com.int371.eventhub.entity.SuggestionsAnalysis;
 
 public interface SuggestionsAnalysisRepository extends JpaRepository<SuggestionsAnalysis, Long> {
@@ -59,5 +60,5 @@ public interface SuggestionsAnalysisRepository extends JpaRepository<Suggestions
                      @Param("role") com.int371.eventhub.entity.MemberEventRole role,
                      Pageable pageable);
 
-       void deleteByMemberEventId(Integer memberEventId);
+       void deleteByResponseAnswerIn(List<ResponseAnswer> responseAnswers);
 }

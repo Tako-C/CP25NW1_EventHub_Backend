@@ -61,8 +61,23 @@ public interface ResponseAnswerRepository extends JpaRepository<ResponseAnswer, 
                         "JOIN ra.question q " +
                         "JOIN q.survey s " +
                         "LEFT JOIN SuggestionsAnalysis sa ON sa.responseAnswer = ra " +
-                        "WHERE s.event.id = :eventId AND ra.questionType = com.int371.eventhub.entity.QuestionType.TEXT")
+                        "WHERE s.event.id = :eventId AND ra.questionType = QuestionType.TEXT")
         List<Object[]> findFullTextResponsesByEventId(@Param("eventId") Integer eventId);
 
         void deleteByMemberEventId(Integer memberEventId);
+
+        List<ResponseAnswer> findByMemberEventId(Integer memberEventId);
+
+        @Query("SELECT s.type as surveyType, q.id as questionId, q.question as questionText, q.questionType as qType, ra.answer as answerText, COUNT(ra) as answerCount "
+                        +
+                        "FROM ResponseAnswer ra " +
+                        "JOIN ra.question q " +
+                        "JOIN q.survey s " +
+                        "WHERE s.event.id = :eventId " +
+                        "AND q.questionType IN (QuestionType.SINGLE, QuestionType.MULTIPLE) " +
+                        "AND s.type IN :surveyTypes " +
+                        "GROUP BY s.type, q.id, q.question, q.questionType, ra.answer " +
+                        "ORDER BY s.type, q.id")
+        List<Object[]> countAnswersByEventAndSurveyTypes(@Param("eventId") Integer eventId,
+                        @Param("surveyTypes") List<SurveyType> surveyTypes);
 }
