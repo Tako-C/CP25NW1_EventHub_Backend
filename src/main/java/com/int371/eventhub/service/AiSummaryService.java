@@ -66,7 +66,7 @@ public class AiSummaryService {
 
     public AiSummaryService() {
         this.restClient = RestClient.builder()
-                .baseUrl("http://cp25nw1.sit.kmutt.ac.th:8000")
+                .baseUrl("http://eventhub-analysis-ai:8000")
                 .build();
     }
 
@@ -170,7 +170,7 @@ public class AiSummaryService {
         if (opKpi != null) {
             totalPre = opKpi.getTotalPreSurvey() != null ? opKpi.getTotalPreSurvey() : 0;
             totalPos = opKpi.getTotalPostSurvey() != null ? opKpi.getTotalPostSurvey() : 0;
-            
+
             summary.setTotalPreFeedback(totalPre);
             summary.setTotalPosFeedback(totalPos);
             summary.setTotalSubmitPreVFeedback(
