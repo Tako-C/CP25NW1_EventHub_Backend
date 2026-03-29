@@ -193,6 +193,9 @@ public class AdminService {
 
     @Transactional
     public void removeUserFromEvent(Integer eventId, Integer userId) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
         MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("User is not registered in this event."));
 
@@ -211,6 +214,9 @@ public class AdminService {
 
     @Transactional
     public Map<String, Object> updateMemberEventRole(Integer eventId, Integer userId, MemberEventRole newRole) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
         MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found in this event."));
 

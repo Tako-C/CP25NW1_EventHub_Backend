@@ -29,6 +29,24 @@ public class AiEventSummaryDto {
     @JsonProperty("total_feedback")
     private Integer totalFeedback;
 
+    @JsonProperty("total_pre_feedback")
+    private Integer totalPreFeedback;
+
+    @JsonProperty("total_pos_feedback")
+    private Integer totalPosFeedback;
+
+    @JsonProperty("total_submit_pre_v_feedback")
+    private Integer totalSubmitPreVFeedback;
+
+    @JsonProperty("total_submit_pos_v_feedback")
+    private Integer totalSubmitPosVFeedback;
+
+    @JsonProperty("total_submit_pre_e_feedback")
+    private Integer totalSubmitPreEFeedback;
+
+    @JsonProperty("total_submit_pos_e_feedback")
+    private Integer totalSubmitPosEFeedback;
+
     private Map<String, Integer> occupations;
 
     @JsonProperty("visitor_score")

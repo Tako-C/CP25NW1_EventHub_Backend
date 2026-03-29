@@ -22,6 +22,8 @@ import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.OperationalKpiRepository;
 import com.int371.eventhub.repository.ResponseAnswerRepository;
 import com.int371.eventhub.repository.SatisfactionKpiRepository;
+import com.int371.eventhub.repository.EventRepository;
+import com.int371.eventhub.exception.ResourceNotFoundException;
 
 @Service
 public class EventDashboardService {
@@ -38,6 +40,15 @@ public class EventDashboardService {
     @Autowired
     private OperationalKpiRepository operationalKpiRepository;
 
+    @Autowired
+    private EventRepository eventRepository;
+
+    private void validateEventExists(Integer eventId) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+        }
+    }
+
     public DashboardRegistrationStatsDto getEventRegistrationStats(Integer eventId) {
         return getStatsForStatuses(eventId, java.util.Arrays.asList("REGISTRATION", "CHECK_IN"), false);
     }
@@ -47,6 +58,7 @@ public class EventDashboardService {
     }
 
     public SatisfactionResponseDto getSatisfactionKpi(Integer eventId, MemberEventRole role) {
+        validateEventExists(eventId);
         SatisfactionKpi kpiEntity = satisfactionKpiRepository.findByEventId(eventId).orElse(null);
         if (kpiEntity == null) {
             return new SatisfactionResponseDto(0.0, 0.0, java.util.Collections.emptyList());
@@ -81,6 +93,7 @@ public class EventDashboardService {
     }
 
     public List<TextResponseDto> getTextResponses(Integer eventId) {
+        validateEventExists(eventId);
         List<Object[]> rawData = responseAnswerRepository.findFullTextResponsesByEventId(eventId);
         return rawData.stream()
                 .map(obj -> new TextResponseDto(
@@ -93,6 +106,7 @@ public class EventDashboardService {
     }
 
     public SurveyDashboardStatsDto getSurveyStats(Integer eventId, MemberEventRole role) {
+        validateEventExists(eventId);
         OperationalKpi opKpi = operationalKpiRepository.findByEventId(eventId).orElse(null);
 
         List<Object[]> hourlyData = responseAnswerRepository.countHourlySubmissionsByEventIdAndRole(eventId,
@@ -129,11 +143,13 @@ public class EventDashboardService {
     }
 
     public List<SurveyStatusListDto> getSurveyStatusList(Integer eventId, MemberEventRole role) {
+        validateEventExists(eventId);
         return memberEventRepository.findSurveyStatusByEventIdAndRole(eventId, role);
     }
 
     private DashboardRegistrationStatsDto getStatsForStatuses(Integer eventId, List<String> statuses,
             boolean isCheckIn) {
+        validateEventExists(eventId);
         Integer totalParticipantsCount = memberEventRepository.countByEventId(eventId);
         Integer totalCheckinCount = memberEventRepository.countByEventIdAndStatus(eventId,
                 com.int371.eventhub.entity.MemberEventStatus.CHECK_IN);
@@ -180,6 +196,7 @@ public class EventDashboardService {
     }
 
     public List<DashboardRegistrationStatsDto.JobStatDto> getEventJobStats(Integer eventId) {
+        validateEventExists(eventId);
         List<String> statuses = java.util.Arrays.asList("REGISTRATION", "CHECK_IN");
         List<Object[]> jobData = memberEventRepository.countJobsByEventIdAndStatuses(eventId, statuses);
         return jobData.stream()
@@ -189,6 +206,7 @@ public class EventDashboardService {
     }
 
     public List<DashboardRegistrationStatsDto.GenderStatDto> getEventGenderStats(Integer eventId) {
+        validateEventExists(eventId);
         List<String> statuses = java.util.Arrays.asList("REGISTRATION", "CHECK_IN");
         List<Object[]> genderData = memberEventRepository.countGendersByEventIdAndStatuses(eventId, statuses);
         return genderData.stream()
@@ -198,6 +216,7 @@ public class EventDashboardService {
     }
 
     public List<DashboardRegistrationStatsDto.AgeRangeStatDto> getEventAgeStats(Integer eventId) {
+        validateEventExists(eventId);
         List<String> statuses = java.util.Arrays.asList("REGISTRATION", "CHECK_IN");
         List<Object[]> ageRangeData = memberEventRepository.countAgeRangesByEventIdAndStatuses(eventId, statuses);
         return ageRangeData.stream()
@@ -207,6 +226,7 @@ public class EventDashboardService {
     }
 
     public List<DashboardRegistrationStatsDto.CityStatDto> getEventCityStats(Integer eventId) {
+        validateEventExists(eventId);
         List<String> statuses = java.util.Arrays.asList("REGISTRATION", "CHECK_IN");
         List<Object[]> cityData = memberEventRepository.countCitiesByEventIdAndStatuses(eventId, statuses);
         return cityData.stream()
@@ -216,6 +236,7 @@ public class EventDashboardService {
     }
 
     public List<DashboardRegistrationStatsDto.RoleRatioStatDto> getEventRoleRatioStats(Integer eventId) {
+        validateEventExists(eventId);
         return getRoleRatioStatsHelper(eventId, java.util.Arrays.asList("REGISTRATION", "CHECK_IN"));
     }
 

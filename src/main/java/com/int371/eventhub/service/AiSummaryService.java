@@ -12,6 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.int371.eventhub.exception.ResourceNotFoundException;
 import com.int371.eventhub.dto.AiEventSummaryDto;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.dto.SentimentAnalyzeRequestDto;
@@ -27,10 +28,12 @@ import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.SatisfactionKpiRepository;
 import com.int371.eventhub.repository.EngagementKpiRepository;
 import com.int371.eventhub.repository.AiEventAnalysisRepository;
+import com.int371.eventhub.repository.OperationalKpiRepository;
 import com.int371.eventhub.entity.AiEventAnalysis;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.EngagementKpi;
 import com.int371.eventhub.entity.SatisfactionKpi;
+import com.int371.eventhub.entity.OperationalKpi;
 
 @Service
 public class AiSummaryService {
@@ -57,6 +60,9 @@ public class AiSummaryService {
 
     @Autowired
     private AiEventAnalysisRepository aiEventAnalysisRepository;
+
+    @Autowired
+    private OperationalKpiRepository operationalKpiRepository;
 
     public AiSummaryService() {
         this.restClient = RestClient.builder()
@@ -127,7 +133,7 @@ public class AiSummaryService {
         } catch (Exception e) {
             System.err.println("Failed to sync sentiment in batch mode.");
             e.printStackTrace();
-            throw new RuntimeException("API Sync Error: " + e.getMessage(), e);
+            throw new IllegalArgumentException("AI Service Error: Can not fetch AI (" + e.getMessage() + ")", e);
         }
     }
 
@@ -138,20 +144,15 @@ public class AiSummaryService {
     public AiEventSummaryDto getEventSummary(Integer eventId) {
         AiEventSummaryDto summary = new AiEventSummaryDto();
 
-        Event event = eventRepository.findById(eventId).orElse(null);
-        if (event != null) {
-            summary.setEventName(getOrDefaultString(event.getEventName()));
-            summary.setEventType(
-                    event.getEventTypeId() != null ? getOrDefaultString(event.getEventTypeId().getEventTypeName())
-                            : "ไม่มีข้อมูล");
-            summary.setLocation(getOrDefaultString(event.getLocation()));
-            summary.setEventDetail(getOrDefaultString(event.getEventDesc()));
-        } else {
-            summary.setEventName("ไม่มีข้อมูล");
-            summary.setEventType("ไม่มีข้อมูล");
-            summary.setLocation("ไม่มีข้อมูล");
-            summary.setEventDetail("ไม่มีข้อมูล");
-        }
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        summary.setEventName(getOrDefaultString(event.getEventName()));
+        summary.setEventType(
+                event.getEventTypeId() != null ? getOrDefaultString(event.getEventTypeId().getEventTypeName())
+                        : "ไม่มีข้อมูล");
+        summary.setLocation(getOrDefaultString(event.getLocation()));
+        summary.setEventDetail(getOrDefaultString(event.getEventDesc()));
 
         EngagementKpi engKpi = engagementKpiRepository.findById(eventId).orElse(null);
         if (engKpi != null) {
@@ -162,8 +163,35 @@ public class AiSummaryService {
             summary.setTotalCheckedIn(0);
         }
 
-        Integer totalFeedback = responseAnswerRepository.countTextFeedbackByEventId(eventId);
-        summary.setTotalFeedback(totalFeedback != null ? totalFeedback : 0);
+        Integer totalRegistered = summary.getTotalRegistered() != null ? summary.getTotalRegistered() : 0;
+        Integer totalPre = 0;
+        Integer totalPos = 0;
+
+        OperationalKpi opKpi = operationalKpiRepository.findById(eventId).orElse(null);
+        if (opKpi != null) {
+            totalPre = opKpi.getTotalPreSurvey() != null ? opKpi.getTotalPreSurvey() : 0;
+            totalPos = opKpi.getTotalPostSurvey() != null ? opKpi.getTotalPostSurvey() : 0;
+            
+            summary.setTotalPreFeedback(totalPre);
+            summary.setTotalPosFeedback(totalPos);
+            summary.setTotalSubmitPreVFeedback(
+                    opKpi.getVisitorSubPreSurvey() != null ? opKpi.getVisitorSubPreSurvey() : 0);
+            summary.setTotalSubmitPosVFeedback(
+                    opKpi.getVisitorSubPostSurvey() != null ? opKpi.getVisitorSubPostSurvey() : 0);
+            summary.setTotalSubmitPreEFeedback(
+                    opKpi.getExhibitorSubPreSurvey() != null ? opKpi.getExhibitorSubPreSurvey() : 0);
+            summary.setTotalSubmitPosEFeedback(
+                    opKpi.getExhibitorSubPostSurvey() != null ? opKpi.getExhibitorSubPostSurvey() : 0);
+        } else {
+            summary.setTotalPreFeedback(0);
+            summary.setTotalPosFeedback(0);
+            summary.setTotalSubmitPreVFeedback(0);
+            summary.setTotalSubmitPosVFeedback(0);
+            summary.setTotalSubmitPreEFeedback(0);
+            summary.setTotalSubmitPosEFeedback(0);
+        }
+
+        summary.setTotalFeedback(totalPre + totalPos);
 
         List<Object[]> occList = memberEventRepository.countOccupationsByEventId(eventId);
         Map<String, Integer> occupations = new HashMap<>();
@@ -188,22 +216,28 @@ public class AiSummaryService {
 
         List<SentimentCategoryDto> negVisitor = suggestionsAnalysisRepository.findTopAnalysisByEventAndSentimentAndRole(
                 eventId, "NEGATIVE", MemberEventRole.VISITOR, PageRequest.of(0, 3));
-        List<SentimentCategoryDto> negExhibitor = suggestionsAnalysisRepository.findTopAnalysisByEventAndSentimentAndRole(
-                eventId, "NEGATIVE", MemberEventRole.EXHIBITOR, PageRequest.of(0, 3));
-        
+        List<SentimentCategoryDto> negExhibitor = suggestionsAnalysisRepository
+                .findTopAnalysisByEventAndSentimentAndRole(
+                        eventId, "NEGATIVE", MemberEventRole.EXHIBITOR, PageRequest.of(0, 3));
+
         List<SentimentCategoryDto> topIssues = new java.util.ArrayList<>();
-        if (negVisitor != null) topIssues.addAll(negVisitor);
-        if (negExhibitor != null) topIssues.addAll(negExhibitor);
+        if (negVisitor != null)
+            topIssues.addAll(negVisitor);
+        if (negExhibitor != null)
+            topIssues.addAll(negExhibitor);
         summary.setTopIssues(topIssues.isEmpty() ? "ไม่มีข้อมูล" : topIssues);
 
         List<SentimentCategoryDto> posVisitor = suggestionsAnalysisRepository.findTopAnalysisByEventAndSentimentAndRole(
                 eventId, "POSITIVE", MemberEventRole.VISITOR, PageRequest.of(0, 3));
-        List<SentimentCategoryDto> posExhibitor = suggestionsAnalysisRepository.findTopAnalysisByEventAndSentimentAndRole(
-                eventId, "POSITIVE", MemberEventRole.EXHIBITOR, PageRequest.of(0, 3));
-                
+        List<SentimentCategoryDto> posExhibitor = suggestionsAnalysisRepository
+                .findTopAnalysisByEventAndSentimentAndRole(
+                        eventId, "POSITIVE", MemberEventRole.EXHIBITOR, PageRequest.of(0, 3));
+
         List<SentimentCategoryDto> topGood = new java.util.ArrayList<>();
-        if (posVisitor != null) topGood.addAll(posVisitor);
-        if (posExhibitor != null) topGood.addAll(posExhibitor);
+        if (posVisitor != null)
+            topGood.addAll(posVisitor);
+        if (posExhibitor != null)
+            topGood.addAll(posExhibitor);
         summary.setTopGood(topGood.isEmpty() ? "ไม่มีข้อมูล" : topGood);
 
         return summary;
@@ -267,10 +301,9 @@ public class AiSummaryService {
         } catch (Exception e) {
             System.err.println("Failed to get AI event performance analysis.");
             e.printStackTrace();
-            throw new RuntimeException("API Analysis Error: " + e.getMessage(), e);
+            throw new IllegalArgumentException("AI Service Error: Can not fetch AI (" + e.getMessage() + ")", e);
         }
     }
-
 
     public List<AiEventAnalysis> getAllStoredAnalysis(Integer eventId) {
         return aiEventAnalysisRepository.findByEventIdOrderByCreatedAtDesc(eventId);
