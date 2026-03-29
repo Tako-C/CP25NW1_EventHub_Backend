@@ -39,7 +39,7 @@ public interface SuggestionsAnalysisRepository extends JpaRepository<Suggestions
                      @Param("sentiment") String sentiment,
                      Pageable pageable);
 
-        @Query("SELECT new com.int371.eventhub.dto.SentimentCategoryDto( " +
+       @Query("SELECT new com.int371.eventhub.dto.SentimentCategoryDto( " +
                      "s.keyword, " +
                      "CAST(COUNT(s.id) AS int), " +
                      "CAST(r.memberEvent.eventRole AS string), " +
@@ -53,9 +53,11 @@ public interface SuggestionsAnalysisRepository extends JpaRepository<Suggestions
                      "AND r.memberEvent.eventRole = :role " +
                      "GROUP BY s.keyword, r.memberEvent.eventRole, s.sentiment " +
                      "ORDER BY COUNT(s.id) DESC")
-        List<com.int371.eventhub.dto.SentimentCategoryDto> findTopAnalysisByEventAndSentimentAndRole(
+       List<com.int371.eventhub.dto.SentimentCategoryDto> findTopAnalysisByEventAndSentimentAndRole(
                      @Param("eventId") Integer eventId,
                      @Param("sentiment") String sentiment,
                      @Param("role") com.int371.eventhub.entity.MemberEventRole role,
                      Pageable pageable);
+
+       void deleteByMemberEventId(Integer memberEventId);
 }

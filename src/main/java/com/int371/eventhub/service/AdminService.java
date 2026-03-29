@@ -26,6 +26,9 @@ import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.MemberEvent;
 import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.dto.AdminAddUserToEventRequestDto;
+import com.int371.eventhub.repository.ResponseAnswerRepository;
+import com.int371.eventhub.repository.SuggestionsAnalysisRepository;
+import com.int371.eventhub.repository.UserRewardRepository;
 
 @Service
 public class AdminService {
@@ -53,6 +56,15 @@ public class AdminService {
 
     @Autowired
     private EventRepository eventRepository;
+
+    @Autowired
+    private ResponseAnswerRepository responseAnswerRepository;
+
+    @Autowired
+    private SuggestionsAnalysisRepository suggestionsAnalysisRepository;
+
+    @Autowired
+    private UserRewardRepository userRewardRepository;
 
     public AdminCreateUserResponseDto createUserByAdmin(AdminCreateUserRequestDto request, String adminEmail) {
         User admin = userRepository.findByEmail(adminEmail)
@@ -162,10 +174,43 @@ public class AdminService {
                 "status", savedUser.getStatus());
     }
 
+    // @Transactional
+    // public void deleteUser(Integer userId) {
+    // User user = userRepository.findById(userId)
+    // .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " +
+    // userId));
+    // userRepository.delete(user);
+    // }
+
     @Transactional
     public void deleteUser(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        List<MemberEvent> userEvents = memberEventRepository.findAllByUserId(userId);
+        for (MemberEvent me : userEvents) {
+            // ใน loop for (MemberEvent me : userEvents)
+            Integer meId = me.getId();
+
+            // 1. ลบตารางวิเคราะห์ (ต้องเรียกผ่าน suggestionsAnalysisRepository)
+            suggestionsAnalysisRepository.deleteByMemberEventId(meId);
+
+            // 2. ลบคำตอบ (เรียกผ่าน responseAnswerRepository และใช้ชื่อ Method ให้ถูก)
+            responseAnswerRepository.deleteByMemberEventId(meId);
+        }
+
+        // 2. ลบความสัมพันธ์ใน UserEvents ทั้งหมดของผู้ใช้
+        memberEventRepository.deleteByUserId(userId);
+
+        // 3. ลบข้อมูลการแลกของรางวัล (UserRewards)
+        userRewardRepository.deleteByUserId(userId);
+
+        // 4. กรณีที่ User คนนี้เป็นคนสร้าง Event (Created By)
+        // คุณต้องเลือกว่าจะลบ Event นั้นทิ้ง หรือเปลี่ยนคนสร้าง (แนะนำให้ลบหากต้องการลบ
+        // User จริงๆ)
+        // eventRepository.deleteByCreatedBy(userId);
+
+        // 5. ลบข้อมูล User เป็นลำดับสุดท้าย
         userRepository.delete(user);
     }
 
@@ -193,11 +238,14 @@ public class AdminService {
 
     @Transactional
     public void removeUserFromEvent(Integer eventId, Integer userId) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new ResourceNotFoundException("Event not found with id: " + eventId);
-        }
         MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("User is not registered in this event."));
+
+        Integer memberEventId = memberEvent.getId();
+
+        suggestionsAnalysisRepository.deleteByMemberEventId(memberEventId);
+
+        responseAnswerRepository.deleteByMemberEventId(memberEventId);
 
         memberEventRepository.delete(memberEvent);
     }
@@ -214,9 +262,6 @@ public class AdminService {
 
     @Transactional
     public Map<String, Object> updateMemberEventRole(Integer eventId, Integer userId, MemberEventRole newRole) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new ResourceNotFoundException("Event not found with id: " + eventId);
-        }
         MemberEvent memberEvent = memberEventRepository.findByUserIdAndEventId(userId, eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found in this event."));
 

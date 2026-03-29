@@ -163,7 +163,6 @@ public class AiSummaryService {
             summary.setTotalCheckedIn(0);
         }
 
-        Integer totalRegistered = summary.getTotalRegistered() != null ? summary.getTotalRegistered() : 0;
         Integer totalPre = 0;
         Integer totalPos = 0;
 

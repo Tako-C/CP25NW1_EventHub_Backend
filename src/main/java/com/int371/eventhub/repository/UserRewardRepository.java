@@ -20,4 +20,5 @@ public interface UserRewardRepository extends JpaRepository<UserReward, Integer>
 
     List<UserReward> findByEventReward(EventReward eventReward);
 
+    void deleteByUserId(Integer userId);
 }
