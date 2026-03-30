@@ -1,5 +1,6 @@
 package com.int371.eventhub.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +16,9 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
 
     Optional<Event> findByIdAndStatusNot(Integer id, EventStatus status);
 
-    List<Event> findAllByEndDateBeforeAndStatusIn(java.time.LocalDateTime endDate, List<EventStatus> statuses);
+    List<Event> findAllByEndDateBeforeAndStatusIn(LocalDateTime endDate, List<EventStatus> statuses);
 
-    List<Event> findAllByStartDateBeforeAndStatus(java.time.LocalDateTime startDate, EventStatus status);
+    List<Event> findAllByStartDateBeforeAndStatus(LocalDateTime startDate, EventStatus status);
+
+    Optional<Event> findFirstByEventNameIgnoreCase(String eventName);
 }

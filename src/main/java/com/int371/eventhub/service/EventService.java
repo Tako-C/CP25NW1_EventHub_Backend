@@ -13,6 +13,7 @@ import java.util.Set;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -359,13 +360,29 @@ public class EventService {
 
     // ========================= UPDATE =========================
 
+    private void verifyOwnership(Event event, String email) {
+        if (email == null) {
+            throw new AccessDeniedException("Authentication required.");
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        boolean isOrganizer = memberEventRepository.findByEventAndUser(event, user)
+                .map(me -> me.getEventRole() == MemberEventRole.ORGANIZER)
+                .orElse(false);
+        if (!isOrganizer) {
+            throw new AccessDeniedException("Access denied. Only the organizer can modify this event.");
+        }
+    }
+
     @Transactional
-    public Event updateEvent(Integer id, EditEventRequestDto dto) {
-        for (int index = 0; index < dto.getSlideshowIndices().size(); index++) {
-            Integer targetIndex = dto.getSlideshowIndices().get(index);
-            if (targetIndex < 1 || targetIndex > 3) {
-                throw new IllegalArgumentException(
-                        "Slideshow index must be between 1 and 3. Invalid index: " + targetIndex);
+    public Event updateEvent(Integer id, EditEventRequestDto dto, String email) {
+        if (dto.getSlideshowIndices() != null) {
+            for (int index = 0; index < dto.getSlideshowIndices().size(); index++) {
+                Integer targetIndex = dto.getSlideshowIndices().get(index);
+                if (targetIndex < 1 || targetIndex > 3) {
+                    throw new IllegalArgumentException(
+                            "Slideshow index must be between 1 and 3. Invalid index: " + targetIndex);
+                }
             }
         }
 
@@ -376,24 +393,37 @@ public class EventService {
             throw new ResourceNotFoundException("Event not found or has been deleted");
         }
 
+        verifyOwnership(event, email);
+
         Integer eventId = event.getId();
 
-        event.setEventName(dto.getEventName());
-        event.setEventDesc(dto.getEventDesc());
-        event.setLocation(dto.getLocation());
-        event.setHostOrganisation(dto.getHostOrganisation());
-        event.setContactEmail(dto.getContactEmail());
-        event.setContactFacebook(dto.getContactFacebook());
-        event.setContactLine(dto.getContactLine());
-        event.setContactPhone(dto.getContactPhone());
-        event.setStartDate(dto.getStartDate());
-        event.setEndDate(dto.getEndDate());
-        event.setCreatedBy(dto.getCreatedBy());
+        if (dto.getEventName() != null && !dto.getEventName().isBlank())
+            event.setEventName(dto.getEventName());
+        if (dto.getEventDesc() != null && !dto.getEventDesc().isBlank())
+            event.setEventDesc(dto.getEventDesc());
+        if (dto.getLocation() != null && !dto.getLocation().isBlank())
+            event.setLocation(dto.getLocation());
+        if (dto.getHostOrganisation() != null && !dto.getHostOrganisation().isBlank())
+            event.setHostOrganisation(dto.getHostOrganisation());
+        if (dto.getContactEmail() != null && !dto.getContactEmail().isBlank())
+            event.setContactEmail(dto.getContactEmail());
+        if (dto.getContactFacebook() != null)
+            event.setContactFacebook(dto.getContactFacebook());
+        if (dto.getContactLine() != null)
+            event.setContactLine(dto.getContactLine());
+        if (dto.getContactPhone() != null)
+            event.setContactPhone(dto.getContactPhone());
+        if (dto.getStartDate() != null)
+            event.setStartDate(dto.getStartDate());
+        if (dto.getEndDate() != null)
+            event.setEndDate(dto.getEndDate());
+        if (dto.getCreatedBy() != null)
+            event.setCreatedBy(dto.getCreatedBy());
         event.setUpdatedAt(LocalDateTime.now());
 
         EventStatus targetStatus = dto.getStatus() != null ? dto.getStatus() : event.getStatus();
-        validateEventStatusTimeline(targetStatus, event.getStartDate(), event.getEndDate());
-        event.setStatus(targetStatus);
+        EventStatus computedStatus = computeCorrectStatus(targetStatus, event.getStartDate(), event.getEndDate());
+        event.setStatus(computedStatus);
         // Update Event Type if provided
 
         if (dto.getEventTypeId() != null) {
@@ -444,21 +474,21 @@ public class EventService {
 
         Integer eventId = event.getId();
 
-        if (dto.getEventName() != null)
+        if (dto.getEventName() != null && !dto.getEventName().isBlank())
             event.setEventName(dto.getEventName());
-        if (dto.getEventDesc() != null)
+        if (dto.getEventDesc() != null && !dto.getEventDesc().isBlank())
             event.setEventDesc(dto.getEventDesc());
-        if (dto.getLocation() != null)
+        if (dto.getLocation() != null && !dto.getLocation().isBlank())
             event.setLocation(dto.getLocation());
-        if (dto.getHostOrganisation() != null)
+        if (dto.getHostOrganisation() != null && !dto.getHostOrganisation().isBlank())
             event.setHostOrganisation(dto.getHostOrganisation());
-        if (dto.getContactEmail() != null)
+        if (dto.getContactEmail() != null && !dto.getContactEmail().isBlank())
             event.setContactEmail(dto.getContactEmail());
-        if (dto.getContactFacebook() != null)
+        if (dto.getContactFacebook() != null && !dto.getContactFacebook().isBlank())
             event.setContactFacebook(dto.getContactFacebook());
-        if (dto.getContactLine() != null)
+        if (dto.getContactLine() != null && !dto.getContactLine().isBlank())
             event.setContactLine(dto.getContactLine());
-        if (dto.getContactPhone() != null)
+        if (dto.getContactPhone() != null && !dto.getContactPhone().isBlank())
             event.setContactPhone(dto.getContactPhone());
         if (dto.getStartDate() != null)
             event.setStartDate(dto.getStartDate());
@@ -469,8 +499,9 @@ public class EventService {
         event.setUpdatedAt(LocalDateTime.now());
 
         EventStatus targetStatusAdmin = dto.getStatus() != null ? dto.getStatus() : event.getStatus();
-        validateEventStatusTimeline(targetStatusAdmin, event.getStartDate(), event.getEndDate());
-        event.setStatus(targetStatusAdmin);
+        EventStatus computedStatusAdmin = computeCorrectStatus(targetStatusAdmin, event.getStartDate(),
+                event.getEndDate());
+        event.setStatus(computedStatusAdmin);
 
         if (dto.getEventTypeId() != null) {
             EventType type = eventTypeRepository.findById(dto.getEventTypeId())
@@ -503,41 +534,32 @@ public class EventService {
         return eventRepository.save(event);
     }
 
-    private void validateEventStatusTimeline(EventStatus targetStatus, LocalDateTime startDate,
+    private EventStatus computeCorrectStatus(EventStatus currentStatus, LocalDateTime startDate,
             LocalDateTime endDate) {
-        if (targetStatus == null || targetStatus == EventStatus.DELETED) {
-            return;
+        if (currentStatus == null || currentStatus == EventStatus.DELETED) {
+            return currentStatus;
         }
 
         LocalDateTime now = LocalDateTime.now();
 
         if (startDate != null && now.isBefore(startDate)) {
-            if (targetStatus != EventStatus.UPCOMING) {
-                throw new IllegalArgumentException(
-                        "Cannot change status to " + targetStatus
-                                + ". The current time is before the start date, so the status must be UPCOMING.");
-            }
+            return EventStatus.UPCOMING;
         } else if (endDate != null && now.isAfter(endDate)) {
-            if (targetStatus != EventStatus.FINISHED) {
-                throw new IllegalArgumentException(
-                        "Cannot change status to " + targetStatus
-                                + ". The event has already ended, so the status must be FINISHED. Please edit the dates if you want to set it to "
-                                + targetStatus + ".");
-            }
+            return EventStatus.FINISHED;
         } else if (startDate != null && endDate != null && !now.isBefore(startDate) && !now.isAfter(endDate)) {
-            if (targetStatus != EventStatus.ONGOING) {
-                throw new IllegalArgumentException(
-                        "Cannot change status to " + targetStatus
-                                + ". The event is currently running, so the status must be ONGOING.");
-            }
+            return EventStatus.ONGOING;
         }
+
+        return currentStatus;
     }
 
     // ========================= DELETE =========================
     @Transactional
-    public void deleteEvent(Integer id) {
+    public void deleteEvent(Integer id, String email) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+
+        verifyOwnership(event, email);
 
         // if (event.getImages() != null) {
         // for (EventImage img : event.getImages()) {
@@ -615,10 +637,12 @@ public class EventService {
     }
 
     @Transactional
-    public void deleteEventImage(Integer eventId, String category, Integer index) {
+    public void deleteEventImage(Integer eventId, String category, Integer index, String email) {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        verifyOwnership(event, email);
 
         category = category.toLowerCase();
 

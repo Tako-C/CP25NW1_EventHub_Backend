@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
 @Data
 public class EventRequestDto {
     @NotBlank(message = "Event name is required")
@@ -28,8 +29,8 @@ public class EventRequestDto {
     private LocalDateTime endDate;
 
     // เพิ่มฟิลด์สำหรับรับไฟล์รูปภาพ
-    private MultipartFile eventCard;       // รูปแผนที่ 1 รูป
-    private MultipartFile eventDetail;    // รูปรายละเอียด 1 รูป
-    private MultipartFile eventMap;       // รูปแผนที่
+    private MultipartFile eventCard; // รูปแผนที่ 1 รูป
+    private MultipartFile eventDetail; // รูปรายละเอียด 1 รูป
+    private MultipartFile eventMap; // รูปแผนที่
     private List<MultipartFile> eventSlideshow; // รูปสไลด์โชว์ (ส่งมาได้หลายรูป)
 }

@@ -70,8 +70,9 @@ public class EventController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<EventResponseDto>> updateEvent(@PathVariable Integer id,
-            @Valid @ModelAttribute EditEventRequestDto dto) {
-        Event updatedEvent = eventService.updateEvent(id, dto);
+            @Valid @ModelAttribute EditEventRequestDto dto, Principal principal) {
+        String email = principal.getName();
+        Event updatedEvent = eventService.updateEvent(id, dto, email);
         ApiResponse<EventResponseDto> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Event updated successfully",
@@ -80,9 +81,10 @@ public class EventController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> deleteEvent(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<String>> deleteEvent(@PathVariable Integer id, Principal principal) {
         try {
-            eventService.deleteEvent(id);
+            String email = principal.getName();
+            eventService.deleteEvent(id, email);
             return ResponseEntity.ok(new ApiResponse<>(200, "Event deleted successfully", null));
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(new ApiResponse<>(404, e.getMessage(), null));
@@ -96,9 +98,11 @@ public class EventController {
     public ResponseEntity<ApiResponse<Object>> deleteEventImage(
             @PathVariable Integer id,
             @RequestParam String category,
-            @RequestParam(required = false) Integer index) {
+            @RequestParam(required = false) Integer index,
+            Principal principal) {
 
-        eventService.deleteEventImage(id, category, index);
+        String email = principal.getName();
+        eventService.deleteEventImage(id, category, index, email);
         ApiResponse<Object> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Image deleted successfully",

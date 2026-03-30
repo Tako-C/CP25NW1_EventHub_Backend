@@ -20,8 +20,6 @@ public class AdminCreateUserRequestDto {
     @NotBlank(message = "Last name is required")
     private String lastName;
 
-    private String password;
-
     @NotBlank(message = "Gender is required")
     private String gender;
 

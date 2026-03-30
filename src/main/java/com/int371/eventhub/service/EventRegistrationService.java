@@ -184,11 +184,14 @@ public class EventRegistrationService {
                 "Verification failed. No OTP was requested for this email or the OTP has expired.");
     }
 
+    public String registerUserForEvent(User user, Event event) {
+        return registerUserForEvent(user, event, MemberEventRole.VISITOR);
+    }
+
     @SuppressWarnings("UseSpecificCatch")
-    private String registerUserForEvent(User user, Event event) {
+    public String registerUserForEvent(User user, Event event, MemberEventRole role) {
         try {
-            MemberEventRole visitorRole = MemberEventRole.VISITOR;
-            MemberEvent registration = new MemberEvent(user, event, visitorRole);
+            MemberEvent registration = new MemberEvent(user, event, role);
 
             LocalDateTime now = LocalDateTime.now();
             registration.setRegisteredAt(now);

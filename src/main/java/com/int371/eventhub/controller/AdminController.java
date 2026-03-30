@@ -2,6 +2,7 @@ package com.int371.eventhub.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.int371.eventhub.dto.AdminAddUserToEventRequestDto;
 import com.int371.eventhub.dto.AdminUpdateUserRoleInEventRequestDto;
@@ -24,12 +27,16 @@ import com.int371.eventhub.service.EventRewardService;
 import com.int371.eventhub.service.EventService;
 import com.int371.eventhub.service.SurveyService;
 import com.int371.eventhub.dto.EditEventRequestDto;
+import com.int371.eventhub.dto.EventRequestDto;
 import com.int371.eventhub.dto.UpdateSurveyRequestDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.dto.CreateEventRewardRequestDto;
+import com.int371.eventhub.dto.CreateSurveyRequestDto;
 import com.int371.eventhub.dto.EventResponseDto;
 import com.int371.eventhub.dto.SurveyResponseDto;
 import com.int371.eventhub.dto.EventRewardResponseDto;
+import com.int371.eventhub.dto.AdminBulkImportResponseDto;
+import com.int371.eventhub.service.AdminBulkImportService;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -42,6 +49,9 @@ public class AdminController {
 
         @Autowired
         private AdminService adminService;
+
+        @Autowired
+        private AdminBulkImportService adminBulkImportService;
 
         @Autowired
         private EventService eventService;
@@ -375,10 +385,10 @@ public class AdminController {
                 return ResponseEntity.ok(response);
         }
 
-        @PostMapping(value = "/events", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/events", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponse<EventResponseDto>> createEvent(
-                        @Valid @ModelAttribute com.int371.eventhub.dto.EventRequestDto dto,
+                        @Valid @ModelAttribute EventRequestDto dto,
                         Principal principal) {
 
                 EventResponseDto createdEvent = eventService.createEventForAdmin(dto, principal.getName());
@@ -395,7 +405,7 @@ public class AdminController {
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponse<SurveyResponseDto>> createSurvey(
                         @PathVariable Integer eventId,
-                        @RequestBody com.int371.eventhub.dto.CreateSurveyRequestDto request) {
+                        @RequestBody CreateSurveyRequestDto request) {
 
                 SurveyResponseDto createdSurvey = surveyService.createSurveyForAdmin(eventId, request);
 
@@ -407,7 +417,7 @@ public class AdminController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
         }
 
-        @PostMapping(value = "/events/{eventId}/rewards", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PostMapping(value = "/events/{eventId}/rewards", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<ApiResponse<EventRewardResponseDto>> createReward(
                         @PathVariable Integer eventId,
@@ -421,5 +431,29 @@ public class AdminController {
                                 createdReward);
 
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+
+        @PostMapping(value = "/events/{eventId}/users/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<ApiResponse<AdminBulkImportResponseDto>> bulkImportUsers(
+                        @PathVariable Integer eventId,
+                        @RequestParam("file") MultipartFile file) {
+
+                AdminBulkImportResponseDto result = adminBulkImportService.importUsers(eventId, file);
+
+                if (result.getSuccessCount() == 0 && !result.getFailedRows().isEmpty()) {
+                        ApiResponse<AdminBulkImportResponseDto> response = new ApiResponse<>(
+                                        HttpStatus.BAD_REQUEST.value(),
+                                        "Validation failed. No data was saved.",
+                                        result);
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                }
+
+                ApiResponse<AdminBulkImportResponseDto> response = new ApiResponse<>(
+                                HttpStatus.OK.value(),
+                                "Bulk import processed successfully.",
+                                result);
+
+                return ResponseEntity.ok(response);
         }
 }
