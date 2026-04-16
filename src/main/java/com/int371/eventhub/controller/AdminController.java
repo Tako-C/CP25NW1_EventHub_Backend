@@ -4,7 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +33,9 @@ import com.int371.eventhub.dto.EditEventRequestDto;
 import com.int371.eventhub.dto.EventRequestDto;
 import com.int371.eventhub.dto.UpdateSurveyRequestDto;
 import com.int371.eventhub.entity.Event;
+import com.int371.eventhub.entity.MemberEvent;
+import com.int371.eventhub.entity.MemberEventRole;
+import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.dto.CreateEventRewardRequestDto;
 import com.int371.eventhub.dto.CreateSurveyRequestDto;
 import com.int371.eventhub.dto.EventResponseDto;
@@ -61,6 +67,33 @@ public class AdminController {
 
         @Autowired
         private EventRewardService eventRewardService;
+
+        @Autowired
+        private MemberEventRepository memberEventRepository;
+
+        private String checkAdminOrOrganizer(Integer eventId, Principal principal) {
+                if (principal == null) {
+                        throw new AccessDeniedException("Authentication required.");
+                }
+
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                boolean isAdmin = auth.getAuthorities().stream()
+                                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")
+                                                || a.getAuthority().equals("ADMIN"));
+                if (isAdmin) {
+                        return "admin";
+                }
+
+                MemberEvent me = memberEventRepository.findByUserEmailAndEventId(principal.getName(), eventId)
+                                .orElseThrow(() -> new AccessDeniedException("Access denied."));
+
+                if (me.getEventRole() != MemberEventRole.ORGANIZER) {
+                        throw new AccessDeniedException(
+                                        "Access denied. Only the organizer or admin can perform this action.");
+                }
+                
+                return "organizer";
+        }
 
         @PostMapping("/users")
         @PreAuthorize("hasRole('ADMIN')")
@@ -123,16 +156,19 @@ public class AdminController {
         }
 
         @PostMapping("/events/{eventId}/users")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'GENERAL_USER')")
         public ResponseEntity<ApiResponse<Map<String, Object>>> addUserToEvent(
                         @PathVariable Integer eventId,
-                        @Valid @RequestBody AdminAddUserToEventRequestDto request) {
+                        @Valid @RequestBody AdminAddUserToEventRequestDto request,
+                        Principal principal) {
+
+                String actor = checkAdminOrOrganizer(eventId, principal);
 
                 Map<String, Object> result = adminService.addUserToEvent(eventId, request);
 
                 ApiResponse<Map<String, Object>> response = new ApiResponse<>(
                                 HttpStatus.CREATED.value(),
-                                "User added to event successfully by admin.",
+                                "User added to event successfully by " + actor + ".",
                                 result);
 
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -155,17 +191,20 @@ public class AdminController {
         }
 
         @PutMapping("/events/{eventId}/users/{userId}/role")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'GENERAL_USER')")
         public ResponseEntity<ApiResponse<Map<String, Object>>> updateMemberEventRole(
                         @PathVariable Integer eventId,
                         @PathVariable Integer userId,
-                        @Valid @RequestBody AdminUpdateUserRoleInEventRequestDto request) {
+                        @Valid @RequestBody AdminUpdateUserRoleInEventRequestDto request,
+                        Principal principal) {
+
+                String actor = checkAdminOrOrganizer(eventId, principal);
 
                 Map<String, Object> result = adminService.updateMemberEventRole(eventId, userId, request.getRole());
 
                 ApiResponse<Map<String, Object>> response = new ApiResponse<>(
                                 HttpStatus.OK.value(),
-                                "User role in event updated successfully by admin.",
+                                "User role in event updated successfully by " + actor + ".",
                                 result);
 
                 return ResponseEntity.ok(response);
@@ -434,10 +473,14 @@ public class AdminController {
         }
 
         @PostMapping(value = "/events/{eventId}/users/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'GENERAL_USER')")
         public ResponseEntity<ApiResponse<AdminBulkImportResponseDto>> bulkImportUsers(
                         @PathVariable Integer eventId,
-                        @RequestParam("file") MultipartFile file) {
+                        @RequestParam("file") MultipartFile file,
+                        Principal principal) {
+
+                checkAdminOrOrganizer(eventId, principal);
+
 
                 AdminBulkImportResponseDto result = adminBulkImportService.importUsers(eventId, file);
 
