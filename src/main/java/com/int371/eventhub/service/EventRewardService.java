@@ -76,13 +76,9 @@ public class EventRewardService {
                 MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user)
                                 .orElseThrow(() -> new AccessDeniedException("User is not a member of this event"));
 
-                if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
-                        throw new AccessDeniedException("Only event organizer can create rewards");
-                }
-
-                if (!event.getCreatedBy().equals(user.getId())) {
-                        throw new AccessDeniedException("Only the event owner can create rewards");
-                }
+        if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
+            throw new AccessDeniedException("Only event organizer can create rewards");
+        }
 
                 EventReward reward = new EventReward();
                 reward.setName(request.getName());
@@ -228,13 +224,9 @@ public class EventRewardService {
                 MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user)
                                 .orElseThrow(() -> new AccessDeniedException("User is not a member of this event"));
 
-                if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
-                        throw new AccessDeniedException("Only event organizer can update rewards");
-                }
-
-                if (!event.getCreatedBy().equals(user.getId())) {
-                        throw new AccessDeniedException("Only the event owner can update rewards");
-                }
+        if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
+            throw new AccessDeniedException("Only event organizer can update rewards");
+        }
 
                 EventReward reward = eventRewardRepository.findById(rewardId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Reward not found"));
@@ -472,13 +464,9 @@ public class EventRewardService {
                 MemberEvent memberEvent = memberEventRepository.findByEventAndUser(event, user)
                                 .orElseThrow(() -> new AccessDeniedException("User is not a member of this event"));
 
-                if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
-                        throw new AccessDeniedException("Only event organizer can delete rewards");
-                }
-
-                if (!event.getCreatedBy().equals(user.getId())) {
-                        throw new AccessDeniedException("Only the event owner can delete rewards");
-                }
+        if (memberEvent.getEventRole() != MemberEventRole.ORGANIZER) {
+            throw new AccessDeniedException("Only event organizer can delete rewards");
+        }
 
                 EventReward reward = eventRewardRepository.findById(rewardId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Reward not found"));

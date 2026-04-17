@@ -91,7 +91,7 @@ public class AdminController {
                         throw new AccessDeniedException(
                                         "Access denied. Only the organizer or admin can perform this action.");
                 }
-                
+
                 return "organizer";
         }
 
@@ -112,7 +112,7 @@ public class AdminController {
         }
 
         @GetMapping("/users")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'GENERAL_USER')")
         public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsers() {
                 List<Map<String, Object>> users = adminService.getAllUsers();
 
@@ -211,7 +211,7 @@ public class AdminController {
         }
 
         @GetMapping("/events/users")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'GENERAL_USER')")
         public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllEventMembers() {
 
                 List<Map<String, Object>> result = adminService.getAllEventMembers();
@@ -225,9 +225,11 @@ public class AdminController {
         }
 
         @GetMapping("/events/{eventId}/users")
-        @PreAuthorize("hasRole('ADMIN')")
+        @PreAuthorize("hasAnyRole('ADMIN', 'GENERAL_USER')")
         public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsersInEvent(
-                        @PathVariable Integer eventId) {
+                        @PathVariable Integer eventId, Principal principal) {
+
+                checkAdminOrOrganizer(eventId, principal);
 
                 List<Map<String, Object>> result = adminService.getAllUsersInEvent(eventId);
 
@@ -480,7 +482,6 @@ public class AdminController {
                         Principal principal) {
 
                 checkAdminOrOrganizer(eventId, principal);
-
 
                 AdminBulkImportResponseDto result = adminBulkImportService.importUsers(eventId, file);
 
