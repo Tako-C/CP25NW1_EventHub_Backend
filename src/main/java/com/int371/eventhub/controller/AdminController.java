@@ -229,13 +229,13 @@ public class AdminController {
         public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllUsersInEvent(
                         @PathVariable Integer eventId, Principal principal) {
 
-                checkAdminOrOrganizer(eventId, principal);
+                String actor = checkAdminOrOrganizer(eventId, principal);
 
                 List<Map<String, Object>> result = adminService.getAllUsersInEvent(eventId);
 
                 ApiResponse<List<Map<String, Object>>> response = new ApiResponse<>(
                                 HttpStatus.OK.value(),
-                                "Fetched all users in event successfully by admin.",
+                                "Fetched all users in event successfully by" + actor + ".",
                                 result);
 
                 return ResponseEntity.ok(response);
