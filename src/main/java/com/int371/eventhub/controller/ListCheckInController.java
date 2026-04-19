@@ -1,4 +1,5 @@
 package com.int371.eventhub.controller;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,9 @@ import com.int371.eventhub.dto.ListCheckInResponseDto;
 import com.int371.eventhub.entity.Event;
 import com.int371.eventhub.entity.User;
 import com.int371.eventhub.entity.UserRole;
+import com.int371.eventhub.entity.MemberEventRole;
 import com.int371.eventhub.repository.EventRepository;
+import com.int371.eventhub.repository.MemberEventRepository;
 import com.int371.eventhub.repository.UserRepository;
 import com.int371.eventhub.service.ListCheckInService;
 
@@ -25,32 +28,41 @@ public class ListCheckInController {
 
     @Autowired
     private ListCheckInService listCheckInService;
-    
+
     @Autowired
     private EventRepository eventRepository;
 
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private MemberEventRepository memberEventRepository;
+
     @PostMapping
     public ResponseEntity<ApiResponse<List<ListCheckInResponseDto>>> getListCheckIn(
-        @RequestBody ListCheckInRequestDto requestDto) {
+            @RequestBody ListCheckInRequestDto requestDto) {
 
-    Integer userId = listCheckInService.getUserIdFromToken();
-    Integer eventId = requestDto.getEventId();
+        Integer userId = listCheckInService.getUserIdFromToken();
+        Integer eventId = requestDto.getEventId();
 
-    Event event = eventRepository.findById(eventId).orElse(null);
-    if (event == null) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(404, "Event not found", null));
+        Event event = eventRepository.findById(eventId).orElse(null);
+        if (event == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(404, "Event not found", null));
+        }
+
+        User user = userRepository.findById(userId).orElse(null);
+        boolean isAdmin = user != null && user.getRole() == UserRole.ADMIN;
+        boolean isCreator = event.getCreatedBy().equals(userId);
+        boolean isOrganizer = memberEventRepository.findByUserIdAndEventId(userId, eventId)
+                .map(me -> me.getEventRole() == MemberEventRole.ORGANIZER)
+                .orElse(false);
+
+        if (!isAdmin && !isCreator && !isOrganizer) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(403, "You are not an organizer of this event", null));
+        }
+        List<ListCheckInResponseDto> checkIns = listCheckInService.getListCheckIn(eventId);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Success", checkIns));
     }
-
-    User user = userRepository.findById(userId).orElse(null);
-    if (user != null && user.getRole() != UserRole.ADMIN && !event.getCreatedBy().equals(userId)) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(403, "You are not the event organizer", null));
-    }
-    List<ListCheckInResponseDto> checkIns = listCheckInService.getListCheckIn(eventId);
-    return ResponseEntity.ok(new ApiResponse<>(200, "Success", checkIns));
-}
 }
